@@ -14,10 +14,14 @@ In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` 
         
      ```gradle
      repositories {
-         flatDir { dirs "libs" }
+         flatDir { dirs 'libs' }
+         maven { url  'http://dl.bintray.com/radar-cns/org.radarcns' }
      }
      
-     
+     dependencies {
+         compile 'com.empatica:empalink:2.0@aar'
+         compile 'org.radarcns:radar-android-empatica:0.1-alpha.1'
+     }
      ```
     
 
