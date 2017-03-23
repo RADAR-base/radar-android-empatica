@@ -63,9 +63,8 @@ version = android.defaultConfig.versionName
 //---------------------------------------------------------------------------//
 
 repositories {
-    flatDir { dirs 'libs' }
     jcenter()
-    maven { url 'http://packages.confluent.io/maven/' }
+    flatDir { dirs 'libs' }
 }
 
 dependencies {
