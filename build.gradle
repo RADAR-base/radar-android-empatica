@@ -54,7 +54,7 @@ android {
 
 group = 'org.radarcns'
 ext.moduleName = 'radar-android-empatica'
-ext.githubUrl = 'https://github.com/RADAR_CNS/RADAR-Android-Empatica.git'
+ext.githubUrl = 'https://github.com/RADAR-CNS/RADAR-Android-Empatica.git'
 ext.moduleDescription = 'Empatica E4 plugin for RADAR passive remote monitoring app'
 version = android.defaultConfig.versionName
 
