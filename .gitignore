@@ -97,5 +97,5 @@ modules.xml
 *.ipr
 .idea/runConfigurations.xml
 
-## Pebble 2
-.lock*
+/libs/*.aar
+
