@@ -19,7 +19,6 @@ In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` 
      }
      
      dependencies {
-         compile 'com.empatica:empalink:2.0@aar'
          compile 'org.radarcns:radar-android-empatica:0.1-alpha.1'
      }
      ```
