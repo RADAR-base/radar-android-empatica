@@ -10,7 +10,7 @@ First, request an Empatica API key for your Empatica Connect account from their 
 
 In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` file (see the template `src/main/res/xml/remote_config_defaults_template.xml` in RADAR-Common-Android):
 
-- Download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.0.aar` from the Empatica Android SDK package to the `libs` directory of your application. Then the project can be edited with Android Studio. Add the following to your `build.gradle`:
+- Download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.1.aar` from the Empatica Android SDK package to the `libs` directory of your application. Then the project can be edited with Android Studio. Add the following to your `build.gradle`:
         
      ```gradle
      repositories {
@@ -19,7 +19,7 @@ In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` 
      }
      
      dependencies {
-         compile 'org.radarcns:radar-android-empatica:0.1-alpha.1'
+         compile 'org.radarcns:radar-android-empatica:0.1-alpha.2'
      }
      ```
     
@@ -32,6 +32,6 @@ In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` 
 
 ## Contributing
 
-To build this repository, download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.0.aar` from the Empatica Android SDK package to the `libs` directory.
+To build this repository, download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.1.aar` from the Empatica Android SDK package to the `libs` directory.
 
 Code should be formatted using the [Google Java Code Style Guide](https://google.github.io/styleguide/javaguide.html), except using 4 spaces as indentation. Make a pull request once the code is working.

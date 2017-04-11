@@ -71,10 +71,10 @@ repositories {
 }
 
 dependencies {
-    compile 'com.empatica:empalink:2.0@aar'
+    compile 'com.empatica:empalink:2.1@aar'
 
     // needed to work with testCompile -> kafka-clients
-    compile 'com.loopj.android:android-async-http:1.4.6'
+    compile 'com.squareup.okhttp:okhttp:2.5.0'
     compile 'com.android.support:appcompat-v7:22.2.0'
     compile 'org.radarcns:radar-commons-android:0.1'
     compile 'org.radarcns:radar-schemas-commons:0.1'
