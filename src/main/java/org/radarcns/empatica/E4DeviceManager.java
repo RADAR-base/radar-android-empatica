@@ -91,58 +91,67 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
         this.deviceStatus = new E4DeviceStatus();
         this.deviceStatus.getId().setUserId(groupId);
         this.deviceName = null;
-        this.mHandlerThread = new HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_AUDIO);
+        this.mHandlerThread = new HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_MORE_FAVORABLE);
         this.isScanning = false;
         this.acceptableIds = null;
     }
 
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
+        logger.info("Starting scanning");
         this.mHandlerThread.start();
-        logger.info("Started scanning");
         synchronized (this) {
             this.mHandler = new Handler(this.mHandlerThread.getLooper());
         }
-        getHandler().post(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
+                logger.info("Creating EmpaDeviceManager");
                 // Create a new EmpaDeviceManager. E4DeviceManager is both its data and status delegate.
                 deviceManager = new EmpaDeviceManager(context, E4DeviceManager.this, E4DeviceManager.this);
                 // Initialize the Device Manager using your API key. You need to have Internet access at this point.
+                logger.info("Authenticating EmpaDeviceManager");
                 deviceManager.authenticateWithAPIKey(apiKey);
                 E4DeviceManager.this.acceptableIds = Strings.containsPatterns(acceptableIds);
-                logger.info("Authenticated device manager");
+                logger.info("Authenticated EmpaDeviceManager");
             }
         });
     }
 
     @Override
-    public void didUpdateStatus(EmpaStatus empaStatus) {
+    public void didUpdateStatus(final EmpaStatus empaStatus) {
         logger.info("Updated E4 status to {}", empaStatus);
         switch (empaStatus) {
             case READY:
-                // The device manager is ready for use
-                // Start scanning
-                Handler localHandler = getHandler();
-                if (localHandler != null) {
-                    localHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (deviceManager == null) {
-                                return;
-                            }
-                            logger.info("Started scanning");
-                            deviceManager.startScanning();
-                            isScanning = true;
-                            updateStatus(DeviceStatusListener.Status.READY);
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // somehow, the status is set to disconnected when EmpaDeviceManager is
+                        // being created
+                        if (deviceManager == null) {
+                            return;
                         }
-                    });
-                }
+                        // The device manager is ready for use
+                        // Start scanning
+                        deviceManager.startScanning();
+                        logger.info("Started scanning");
+                        isScanning = true;
+                        updateStatus(DeviceStatusListener.Status.READY);
+                    }
+                });
                 break;
             case CONNECTED:
-                // The device manager has established a connection
-                this.deviceManager.stopScanning();
-                updateStatus(DeviceStatusListener.Status.CONNECTED);
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isScanning) {
+                            logger.info("Stopping scanning");
+                            deviceManager.stopScanning();
+                            isScanning = false;
+                        }
+                        updateStatus(DeviceStatusListener.Status.CONNECTED);
+                    }
+                });
                 break;
             case DISCONNECTING:
             case DISCONNECTED:
@@ -171,25 +180,29 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
                 return;
             }
             this.deviceName = deviceName;
-            Handler localHandler = getHandler();
-            if (localHandler != null) {
-                localHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            // Connect to the device
-                            updateStatus(DeviceStatusListener.Status.CONNECTING);
-                            deviceManager.connectDevice(bluetoothDevice);
-                            deviceStatus.getId().setSourceId(sourceId);
-                        } catch (ConnectionNotAllowedException e) {
-                            // This should happen only if you try to connect when allowed == false.
-                            e4service.deviceFailedToConnect(deviceName);
-                        }
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        // Connect to the device
+                        updateStatus(DeviceStatusListener.Status.CONNECTING);
+                        deviceManager.connectDevice(bluetoothDevice);
+                        deviceStatus.getId().setSourceId(sourceId);
+                    } catch (ConnectionNotAllowedException e) {
+                        // This should happen only if you try to connect when allowed == false.
+                        e4service.deviceFailedToConnect(deviceName);
                     }
-                });
-            }
+                }
+            });
         } else {
             e4service.deviceFailedToConnect(deviceName);
+        }
+    }
+
+    private void post(Runnable runnable) {
+        Handler localHander = getHandler();
+        if (localHander != null) {
+            localHander.post(runnable);
         }
     }
 
@@ -219,14 +232,18 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
                 logger.info("Initiated device {} stop-sequence", deviceName);
                 if (isScanning) {
                     deviceManager.stopScanning();
+                    isScanning = false;
                 }
                 if (deviceName != null) {
                     deviceManager.disconnect(); //TODO MM: this sometimes invokes nullpointer exception in EmpaLinkBLE (getService)
                 }
+                logger.info("Cleaning up device manager");
                 deviceManager.cleanUp();
+                logger.info("Cleaned up device manager");
                 if (deviceStatus.getStatus() != DeviceStatusListener.Status.DISCONNECTED) {
                     updateStatus(DeviceStatusListener.Status.DISCONNECTED);
                 }
+                logger.info("Finished device {} stop-sequence", deviceName);
             }
         });
         this.mHandlerThread.quitSafely();
@@ -312,7 +329,7 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
         return deviceStatus.getId().hashCode();
     }
 
-    private synchronized void updateStatus(DeviceStatusListener.Status status) {
+    private void updateStatus(DeviceStatusListener.Status status) {
         this.deviceStatus.setStatus(status);
         this.e4service.deviceStatusUpdated(this, status);
     }
