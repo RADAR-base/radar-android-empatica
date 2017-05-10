@@ -141,17 +141,12 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
                 });
                 break;
             case CONNECTED:
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (isScanning) {
-                            logger.info("Stopping scanning");
-                            deviceManager.stopScanning();
-                            isScanning = false;
-                        }
-                        updateStatus(DeviceStatusListener.Status.CONNECTED);
-                    }
-                });
+                if (isScanning) {
+                    logger.info("Stopping scanning");
+                    deviceManager.stopScanning();
+                    isScanning = false;
+                }
+                updateStatus(DeviceStatusListener.Status.CONNECTED);
                 break;
             case DISCONNECTING:
             case DISCONNECTED:
