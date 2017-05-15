@@ -32,7 +32,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.radarcns.android.RadarConfiguration.DEFAULT_GROUP_ID_KEY;
 import static org.radarcns.android.RadarConfiguration.EMPATICA_API_KEY;
 
 /**
@@ -43,7 +42,6 @@ public class E4Service extends DeviceService {
     private static final Logger logger = LoggerFactory.getLogger(E4Service.class);
     private E4Topics topics;
     private String apiKey;
-    private String groupId;
 
     @Override
     public void onCreate() {
@@ -55,7 +53,7 @@ public class E4Service extends DeviceService {
 
     @Override
     protected DeviceManager createDeviceManager() {
-        return new E4DeviceManager(this, this, apiKey, groupId, getDataHandler(), topics);
+        return new E4DeviceManager(this, this, apiKey, getUserId(), getDataHandler(), topics);
     }
 
     @Override
@@ -82,7 +80,6 @@ public class E4Service extends DeviceService {
         if (apiKey == null) {
             apiKey = RadarConfiguration.getStringExtra(bundle, EMPATICA_API_KEY);
             logger.info("Using API key {}", apiKey);
-            groupId = RadarConfiguration.getStringExtra(bundle, DEFAULT_GROUP_ID_KEY);
         }
     }
 }
