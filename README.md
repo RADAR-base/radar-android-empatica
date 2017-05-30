@@ -19,7 +19,7 @@ In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` 
      }
      
      dependencies {
-         compile 'org.radarcns:radar-android-empatica:0.1-alpha.2'
+         compile 'org.radarcns:radar-android-empatica:0.1-alpha.3'
      }
      ```
     
