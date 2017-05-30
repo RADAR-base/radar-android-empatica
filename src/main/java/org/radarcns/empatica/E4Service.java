@@ -23,7 +23,6 @@ import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
-import org.radarcns.android.device.DeviceTopics;
 import org.radarcns.key.MeasurementKey;
 import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
@@ -40,20 +39,11 @@ import static org.radarcns.android.RadarConfiguration.EMPATICA_API_KEY;
  */
 public class E4Service extends DeviceService {
     private static final Logger logger = LoggerFactory.getLogger(E4Service.class);
-    private E4Topics topics;
     private String apiKey;
 
     @Override
-    public void onCreate() {
-        logger.info("Creating E4 service {}", this);
-        super.onCreate();
-
-        topics = E4Topics.getInstance();
-    }
-
-    @Override
     protected DeviceManager createDeviceManager() {
-        return new E4DeviceManager(this, this, apiKey, getUserId(), getDataHandler(), topics);
+        return new E4DeviceManager(this, apiKey, getUserId(), getDataHandler(), getTopics());
     }
 
     @Override
@@ -62,12 +52,13 @@ public class E4Service extends DeviceService {
     }
 
     @Override
-    protected DeviceTopics getTopics() {
-        return topics;
+    protected E4Topics getTopics() {
+        return E4Topics.getInstance();
     }
 
     @Override
     protected List<AvroTopic<MeasurementKey, ? extends SpecificRecord>> getCachedTopics() {
+        E4Topics topics = getTopics();
         return Arrays.<AvroTopic<MeasurementKey, ? extends SpecificRecord>>asList(
                 topics.getAccelerationTopic(), topics.getBloodVolumePulseTopic(),
                 topics.getElectroDermalActivityTopic(), topics.getInterBeatIntervalTopic(),
