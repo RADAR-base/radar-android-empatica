@@ -18,7 +18,6 @@ package org.radarcns.empatica;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.Context;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
@@ -34,7 +33,7 @@ import com.empatica.empalink.delegate.EmpaStatusDelegate;
 
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
-import org.radarcns.android.device.DeviceManager;
+import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.key.MeasurementKey;
 import org.radarcns.topic.AvroTopic;
@@ -46,14 +45,10 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /** Manages scanning for an Empatica E4 wearable and connecting to it */
-class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceManager {
+class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> implements EmpaDataDelegate, EmpaStatusDelegate {
     private static final Logger logger = LoggerFactory.getLogger(E4DeviceManager.class);
 
-    private final TableDataHandler dataHandler;
-    private final Context context;
     private final String apiKey;
-
-    private final DeviceStatusListener e4service;
     private Handler mHandler;
     private final HandlerThread mHandlerThread;
 
@@ -65,15 +60,13 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
     private final DataCache<MeasurementKey, EmpaticaE4SensorStatus> sensorStatusTable;
     private final AvroTopic<MeasurementKey, EmpaticaE4BatteryLevel> batteryTopic;
 
-    private final E4DeviceStatus deviceStatus;
-
     private EmpaDeviceManager deviceManager;
-    private String deviceName;
     private boolean isScanning;
     private Pattern[] acceptableIds;
 
-    public E4DeviceManager(Context context, DeviceStatusListener e4Service, String apiKey, String groupId, TableDataHandler dataHandler, E4Topics topics) {
-        this.dataHandler = dataHandler;
+    public E4DeviceManager(E4Service e4Service, String apiKey, String userId, TableDataHandler dataHandler, E4Topics topics) {
+        super(e4Service, new E4DeviceStatus(), dataHandler, userId, null);
+
         this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
         this.bvpTable = dataHandler.getCache(topics.getBloodVolumePulseTopic());
         this.edaTable = dataHandler.getCache(topics.getElectroDermalActivityTopic());
@@ -82,73 +75,71 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
         this.sensorStatusTable = dataHandler.getCache(topics.getSensorStatusTopic());
         this.batteryTopic = topics.getBatteryLevelTopic();
 
-        this.e4service = e4Service;
-
-        this.context = context;
         this.apiKey = apiKey;
         deviceManager = null;
         // Initialize the Device Manager using your API key. You need to have Internet access at this point.
-        this.deviceStatus = new E4DeviceStatus();
-        this.deviceStatus.getId().setUserId(groupId);
-        this.deviceName = null;
-        this.mHandlerThread = new HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_AUDIO);
+        this.mHandlerThread = new HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_MORE_FAVORABLE);
         this.isScanning = false;
         this.acceptableIds = null;
     }
 
     @Override
     public void start(@NonNull final Set<String> acceptableIds) {
+        logger.info("Starting scanning");
         this.mHandlerThread.start();
-        logger.info("Started scanning");
         synchronized (this) {
             this.mHandler = new Handler(this.mHandlerThread.getLooper());
         }
-        getHandler().post(new Runnable() {
+        post(new Runnable() {
             @Override
             public void run() {
+                logger.info("Creating EmpaDeviceManager");
                 // Create a new EmpaDeviceManager. E4DeviceManager is both its data and status delegate.
-                deviceManager = new EmpaDeviceManager(context, E4DeviceManager.this, E4DeviceManager.this);
+                deviceManager = new EmpaDeviceManager(getService(), E4DeviceManager.this, E4DeviceManager.this);
                 // Initialize the Device Manager using your API key. You need to have Internet access at this point.
+                logger.info("Authenticating EmpaDeviceManager");
                 deviceManager.authenticateWithAPIKey(apiKey);
                 E4DeviceManager.this.acceptableIds = Strings.containsPatterns(acceptableIds);
-                logger.info("Authenticated device manager");
+                logger.info("Authenticated EmpaDeviceManager");
             }
         });
     }
 
     @Override
-    public void didUpdateStatus(EmpaStatus empaStatus) {
+    public void didUpdateStatus(final EmpaStatus empaStatus) {
         logger.info("Updated E4 status to {}", empaStatus);
         switch (empaStatus) {
             case READY:
-                // The device manager is ready for use
-                // Start scanning
-                Handler localHandler = getHandler();
-                if (localHandler != null) {
-                    localHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (deviceManager == null) {
-                                return;
-                            }
-                            logger.info("Started scanning");
-                            deviceManager.startScanning();
-                            isScanning = true;
-                            updateStatus(DeviceStatusListener.Status.READY);
+                post(new Runnable() {
+                    @Override
+                    public void run() {
+                        // somehow, the status is set to disconnected when EmpaDeviceManager is
+                        // being created
+                        if (deviceManager == null) {
+                            return;
                         }
-                    });
-                }
+                        // The device manager is ready for use
+                        // Start scanning
+                        deviceManager.startScanning();
+                        logger.info("Started scanning");
+                        isScanning = true;
+                        updateStatus(DeviceStatusListener.Status.READY);
+                    }
+                });
                 break;
             case CONNECTED:
-                // The device manager has established a connection
-                this.deviceManager.stopScanning();
+                if (isScanning) {
+                    logger.info("Stopping scanning");
+                    deviceManager.stopScanning();
+                    isScanning = false;
+                }
                 updateStatus(DeviceStatusListener.Status.CONNECTED);
                 break;
             case DISCONNECTING:
             case DISCONNECTED:
                 // The device manager disconnected from a device. Before it ever makes a connection,
                 // it also calls this, so check if we have a connected device first.
-                if (deviceStatus.getStatus() != DeviceStatusListener.Status.DISCONNECTED && deviceName != null) {
+                if (getState().getStatus() != DeviceStatusListener.Status.DISCONNECTED && getName() != null) {
                     updateStatus(DeviceStatusListener.Status.DISCONNECTED);
                 }
                 break;
@@ -167,29 +158,33 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
                     && !Strings.findAny(acceptableIds, deviceName)
                     && !Strings.findAny(acceptableIds, sourceId)) {
                 logger.info("Device {} with ID {} is not listed in acceptable device IDs", deviceName, sourceId);
-                e4service.deviceFailedToConnect(deviceName);
+                getService().deviceFailedToConnect(deviceName);
                 return;
             }
-            this.deviceName = deviceName;
-            Handler localHandler = getHandler();
-            if (localHandler != null) {
-                localHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            // Connect to the device
-                            updateStatus(DeviceStatusListener.Status.CONNECTING);
-                            deviceManager.connectDevice(bluetoothDevice);
-                            deviceStatus.getId().setSourceId(sourceId);
-                        } catch (ConnectionNotAllowedException e) {
-                            // This should happen only if you try to connect when allowed == false.
-                            e4service.deviceFailedToConnect(deviceName);
-                        }
+            setName(deviceName);
+            post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        // Connect to the device
+                        updateStatus(DeviceStatusListener.Status.CONNECTING);
+                        deviceManager.connectDevice(bluetoothDevice);
+                        getState().getId().setSourceId(sourceId);
+                    } catch (ConnectionNotAllowedException e) {
+                        // This should happen only if you try to connect when allowed == false.
+                        getService().deviceFailedToConnect(deviceName);
                     }
-                });
-            }
+                }
+            });
         } else {
-            e4service.deviceFailedToConnect(deviceName);
+            getService().deviceFailedToConnect(deviceName);
+        }
+    }
+
+    private void post(Runnable runnable) {
+        Handler localHander = getHandler();
+        if (localHander != null) {
+            localHander.post(runnable);
         }
     }
 
@@ -204,7 +199,7 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
 
     @Override
     public void close() {
-        logger.info("Closing device {}", deviceName);
+        logger.info("Closing device {}", getName());
         Handler localHandler;
         synchronized (this) {
             if (mHandler == null) {
@@ -216,17 +211,22 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
         localHandler.post(new Runnable() {
             @Override
             public void run() {
-                logger.info("Initiated device {} stop-sequence", deviceName);
+                String name = getName();
+                logger.info("Initiated device {} stop-sequence", name);
                 if (isScanning) {
                     deviceManager.stopScanning();
+                    isScanning = false;
                 }
-                if (deviceName != null) {
+                if (getName() != null) {
                     deviceManager.disconnect(); //TODO MM: this sometimes invokes nullpointer exception in EmpaLinkBLE (getService)
                 }
+                logger.info("Cleaning up device manager");
                 deviceManager.cleanUp();
-                if (deviceStatus.getStatus() != DeviceStatusListener.Status.DISCONNECTED) {
+                logger.info("Cleaned up device manager");
+                if (getState().getStatus() != DeviceStatusListener.Status.DISCONNECTED) {
                     updateStatus(DeviceStatusListener.Status.DISCONNECTED);
                 }
+                logger.info("Finished device {} stop-sequence", name);
             }
         });
         this.mHandlerThread.quitSafely();
@@ -242,83 +242,55 @@ class E4DeviceManager implements EmpaDataDelegate, EmpaStatusDelegate, DeviceMan
 
     @Override
     public void didReceiveAcceleration(int x, int y, int z, double timestamp) {
-        deviceStatus.setAcceleration(x / 64f, y / 64f, z / 64f);
-        float[] latestAcceleration = deviceStatus.getAcceleration();
+        getState().setAcceleration(x / 64f, y / 64f, z / 64f);
+        float[] latestAcceleration = getState().getAcceleration();
         EmpaticaE4Acceleration value = new EmpaticaE4Acceleration(
                 timestamp, System.currentTimeMillis() / 1000d,
                 latestAcceleration[0], latestAcceleration[1], latestAcceleration[2]);
 
-        dataHandler.addMeasurement(accelerationTable, deviceStatus.getId(), value);
+        send(accelerationTable, value);
     }
 
     @Override
     public void didReceiveBVP(float bvp, double timestamp) {
-        deviceStatus.setBloodVolumePulse(bvp);
+        getState().setBloodVolumePulse(bvp);
         EmpaticaE4BloodVolumePulse value = new EmpaticaE4BloodVolumePulse(timestamp, System.currentTimeMillis() / 1000d, bvp);
-        dataHandler.addMeasurement(bvpTable, deviceStatus.getId(), value);
+        send(bvpTable, value);
     }
 
     @Override
     public void didReceiveBatteryLevel(float battery, double timestamp) {
-        deviceStatus.setBatteryLevel(battery);
+        getState().setBatteryLevel(battery);
         EmpaticaE4BatteryLevel value = new EmpaticaE4BatteryLevel(timestamp, System.currentTimeMillis() / 1000d, battery);
-        dataHandler.trySend(batteryTopic, 0L, deviceStatus.getId(), value);
+        trySend(batteryTopic, 0L, value);
     }
 
     @Override
     public void didReceiveGSR(float gsr, double timestamp) {
-        deviceStatus.setElectroDermalActivity(gsr);
+        getState().setElectroDermalActivity(gsr);
         EmpaticaE4ElectroDermalActivity value = new EmpaticaE4ElectroDermalActivity(timestamp, System.currentTimeMillis() / 1000d, gsr);
-        dataHandler.addMeasurement(edaTable, deviceStatus.getId(), value);
+        send(edaTable, value);
     }
 
     @Override
     public void didReceiveIBI(float ibi, double timestamp) {
-        deviceStatus.setInterBeatInterval(ibi);
+        getState().setInterBeatInterval(ibi);
         EmpaticaE4InterBeatInterval value = new EmpaticaE4InterBeatInterval(timestamp, System.currentTimeMillis() / 1000d, ibi);
-        dataHandler.addMeasurement(ibiTable, deviceStatus.getId(), value);
+        send(ibiTable, value);
     }
 
     @Override
     public void didReceiveTemperature(float temperature, double timestamp) {
-        deviceStatus.setTemperature(temperature);
+        getState().setTemperature(temperature);
         EmpaticaE4Temperature value = new EmpaticaE4Temperature(timestamp, System.currentTimeMillis() / 1000d, temperature);
-        dataHandler.addMeasurement(temperatureTable, deviceStatus.getId(), value);
+        send(temperatureTable, value);
     }
 
     @Override
     public void didUpdateSensorStatus(EmpaSensorStatus empaSensorStatus, EmpaSensorType empaSensorType) {
-        deviceStatus.setSensorStatus(empaSensorType, empaSensorStatus);
+        getState().setSensorStatus(empaSensorType, empaSensorStatus);
         double now = System.currentTimeMillis() / 1000d;
         EmpaticaE4SensorStatus value = new EmpaticaE4SensorStatus(now, now, empaSensorType.name(), empaSensorStatus.name());
-        dataHandler.addMeasurement(sensorStatusTable, deviceStatus.getId(), value);
-    }
-
-    @Override
-    public String getName() {
-        return deviceName;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        return other == this
-                || other != null && getClass().equals(other.getClass())
-                && deviceStatus.getId().getSourceId() != null
-                && deviceStatus.getId().equals(((E4DeviceManager) other).deviceStatus.getId());
-    }
-
-    @Override
-    public int hashCode() {
-        return deviceStatus.getId().hashCode();
-    }
-
-    private synchronized void updateStatus(DeviceStatusListener.Status status) {
-        this.deviceStatus.setStatus(status);
-        this.e4service.deviceStatusUpdated(this, status);
-    }
-
-    @Override
-    public E4DeviceStatus getState() {
-        return deviceStatus;
+        send(sensorStatusTable, value);
     }
 }
