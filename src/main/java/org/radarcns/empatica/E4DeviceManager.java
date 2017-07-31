@@ -135,7 +135,6 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                 }
                 updateStatus(DeviceStatusListener.Status.CONNECTED);
                 break;
-            case DISCONNECTING:
             case DISCONNECTED:
                 // The device manager disconnected from a device. Before it ever makes a connection,
                 // it also calls this, so check if we have a connected device first.
@@ -217,13 +216,14 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                     deviceManager.stopScanning();
                     isScanning = false;
                 }
-                if (getName() != null) {
-                    deviceManager.disconnect(); //TODO MM: this sometimes invokes nullpointer exception in EmpaLinkBLE (getService)
+                DeviceStatusListener.Status status = getState().getStatus();
+                if (name != null && status != DeviceStatusListener.Status.DISCONNECTED) {
+                    deviceManager.disconnect();
                 }
                 logger.info("Cleaning up device manager");
                 deviceManager.cleanUp();
                 logger.info("Cleaned up device manager");
-                if (getState().getStatus() != DeviceStatusListener.Status.DISCONNECTED) {
+                if (status != DeviceStatusListener.Status.DISCONNECTED) {
                     updateStatus(DeviceStatusListener.Status.DISCONNECTED);
                 }
                 logger.info("Finished device {} stop-sequence", name);
