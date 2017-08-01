@@ -29,6 +29,7 @@ import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
+import org.apache.avro.JsonProperties;
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
@@ -118,10 +119,15 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                         }
                         // The device manager is ready for use
                         // Start scanning
-                        deviceManager.startScanning();
-                        logger.info("Started scanning");
-                        isScanning = true;
-                        updateStatus(DeviceStatusListener.Status.READY);
+                        try {
+                            deviceManager.startScanning();
+                            logger.info("Started scanning");
+                            isScanning = true;
+                            updateStatus(DeviceStatusListener.Status.READY);
+                        } catch (NullPointerException ex) {
+                            logger.error("Empatica internally did not initialize");
+                            updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+                        }
                     }
                 });
                 break;
