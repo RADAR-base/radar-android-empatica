@@ -22,7 +22,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
-
 import com.empatica.empalink.ConnectionNotAllowedException;
 import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.config.EmpaSensorStatus;
@@ -30,7 +29,6 @@ import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
-
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
@@ -213,17 +211,28 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                 String name = getName();
                 logger.info("Initiated device {} stop-sequence", name);
                 if (isScanning) {
-                    deviceManager.stopScanning();
+                    try {
+                        deviceManager.stopScanning();
+                    } catch (NullPointerException ex) {
+                        logger.warn("Empatica internally already stopped scanning");
+                    }
                     isScanning = false;
                 }
-                DeviceStatusListener.Status status = getState().getStatus();
-                if (name != null && status != DeviceStatusListener.Status.DISCONNECTED) {
-                    deviceManager.disconnect();
+                if (name != null) {
+                    try {
+                        deviceManager.disconnect();
+                    } catch (NullPointerException ex) {
+                        logger.warn("Empatica internally already disconnected");
+                    }
                 }
                 logger.info("Cleaning up device manager");
-                deviceManager.cleanUp();
+                try {
+                    deviceManager.cleanUp();
+                } catch (NullPointerException ex) {
+                    logger.warn("Empatica internally already cleaned up");
+                }
                 logger.info("Cleaned up device manager");
-                if (status != DeviceStatusListener.Status.DISCONNECTED) {
+                if (getState().getStatus() != DeviceStatusListener.Status.DISCONNECTED) {
                     updateStatus(DeviceStatusListener.Status.DISCONNECTED);
                 }
                 logger.info("Finished device {} stop-sequence", name);
