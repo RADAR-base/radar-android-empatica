@@ -134,7 +134,11 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
             case CONNECTED:
                 if (isScanning) {
                     logger.info("Stopping scanning");
-                    deviceManager.stopScanning();
+                    try {
+                        deviceManager.stopScanning();
+                    } catch (NullPointerException ex) {
+                        logger.warn("Empatica internally already stopped scanning");
+                    }
                     isScanning = false;
                 }
                 updateStatus(DeviceStatusListener.Status.CONNECTED);
@@ -180,6 +184,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                 }
             });
         } else {
+            logger.warn("Device {} with address {} is not an allowed device.", deviceName, bluetoothDevice.getAddress());
             getService().deviceFailedToConnect(deviceName);
         }
     }
