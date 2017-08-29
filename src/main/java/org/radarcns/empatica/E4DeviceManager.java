@@ -78,6 +78,13 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         deviceManager = null;
         // Initialize the Device Manager using your API key. You need to have Internet access at this point.
         this.mHandlerThread = new HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_MORE_FAVORABLE);
+        this.mHandlerThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                logger.error("Empatica crashed. Disconnecting", e);
+                updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+            }
+        });
         this.isScanning = false;
         this.acceptableIds = null;
     }
