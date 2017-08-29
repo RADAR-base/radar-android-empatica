@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
+import android.widget.Toast;
 import com.empatica.empalink.ConnectionNotAllowedException;
 import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.config.EmpaSensorStatus;
@@ -34,6 +35,7 @@ import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
+import org.radarcns.android.util.Boast;
 import org.radarcns.key.MeasurementKey;
 import org.radarcns.topic.AvroTopic;
 import org.radarcns.util.Strings;
@@ -63,7 +65,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private boolean isScanning;
     private Pattern[] acceptableIds;
 
-    public E4DeviceManager(E4Service e4Service, String apiKey, String userId, TableDataHandler dataHandler, E4Topics topics) {
+    public E4DeviceManager(final E4Service e4Service, String apiKey, String userId, TableDataHandler dataHandler, E4Topics topics) {
         super(e4Service, new E4DeviceStatus(), dataHandler, userId, null);
 
         this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
@@ -82,6 +84,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
             @Override
             public void uncaughtException(Thread t, Throwable e) {
                 logger.error("Empatica crashed. Disconnecting", e);
+                Boast.makeText(e4Service, R.string.empatica_failed, Toast.LENGTH_LONG).show();
                 updateStatus(DeviceStatusListener.Status.DISCONNECTED);
             }
         });
