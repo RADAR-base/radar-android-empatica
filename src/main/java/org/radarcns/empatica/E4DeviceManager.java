@@ -22,6 +22,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
+import android.widget.Toast;
+import com.empatica.empalink.ConfigurationProfileException;
 import com.empatica.empalink.ConnectionNotAllowedException;
 import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.config.EmpaSensorStatus;
@@ -29,11 +31,11 @@ import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
-import org.apache.avro.JsonProperties;
 import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
+import org.radarcns.android.util.Boast;
 import org.radarcns.key.MeasurementKey;
 import org.radarcns.topic.AvroTopic;
 import org.radarcns.util.Strings;
@@ -48,6 +50,8 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private static final Logger logger = LoggerFactory.getLogger(E4DeviceManager.class);
 
     private final String apiKey;
+    private final Thread.UncaughtExceptionHandler originalExHandler;
+    private final Thread mainThread;
     private Handler mHandler;
     private final HandlerThread mHandlerThread;
 
@@ -63,7 +67,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private boolean isScanning;
     private Pattern[] acceptableIds;
 
-    public E4DeviceManager(E4Service e4Service, String apiKey, String userId, TableDataHandler dataHandler, E4Topics topics) {
+    public E4DeviceManager(final E4Service e4Service, String apiKey, String userId, TableDataHandler dataHandler, E4Topics topics) {
         super(e4Service, new E4DeviceStatus(), dataHandler, userId, null);
 
         this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
@@ -78,6 +82,28 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         deviceManager = null;
         // Initialize the Device Manager using your API key. You need to have Internet access at this point.
         this.mHandlerThread = new HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_MORE_FAVORABLE);
+        this.mHandlerThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                logger.error("Empatica crashed. Disconnecting", e);
+                Boast.makeText(e4Service, R.string.empatica_failed, Toast.LENGTH_LONG).show();
+                updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+            }
+        });
+        mainThread = Thread.currentThread();
+        originalExHandler = mainThread.getUncaughtExceptionHandler();
+        mainThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                if (e instanceof ConfigurationProfileException) {
+                    logger.error("Empatica crashed because there is no internet connection. Disconnecting", e);
+                    Boast.makeText(e4Service, R.string.empatica_failed, Toast.LENGTH_LONG).show();
+                    updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+                } else if (originalExHandler != null){
+                    originalExHandler.uncaughtException(t, e);
+                }
+            }
+        });
         this.isScanning = false;
         this.acceptableIds = null;
     }
@@ -250,6 +276,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
             }
         });
         this.mHandlerThread.quitSafely();
+        mainThread.setUncaughtExceptionHandler(originalExHandler);
     }
 
     @Override
