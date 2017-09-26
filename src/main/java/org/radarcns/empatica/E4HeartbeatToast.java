@@ -24,7 +24,8 @@ import android.widget.Toast;
 import org.radarcns.android.device.DeviceServiceConnection;
 import org.radarcns.android.util.Boast;
 import org.radarcns.data.Record;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.empatica.EmpaticaE4InterBeatInterval;
 import org.radarcns.topic.AvroTopic;
 
 import java.io.IOException;
@@ -38,7 +39,7 @@ public class E4HeartbeatToast extends
         AsyncTask<DeviceServiceConnection<E4DeviceStatus>, Void, String[]> {
     private final Context context;
     private static final DecimalFormat singleDecimal = new DecimalFormat("0.0");
-    private static final AvroTopic<MeasurementKey, EmpaticaE4InterBeatInterval> topic = E4Topics
+    private static final AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> topic = E4Topics
             .getInstance().getInterBeatIntervalTopic();
 
     public E4HeartbeatToast(Context context) {
@@ -61,12 +62,12 @@ public class E4HeartbeatToast extends
 
     private String doOne(DeviceServiceConnection<E4DeviceStatus> param, int numRecords)
             throws IOException, RemoteException {
-        List<Record<MeasurementKey, EmpaticaE4InterBeatInterval>> measurements = param
+        List<Record<ObservationKey, EmpaticaE4InterBeatInterval>> measurements = param
                 .getRecords(topic, numRecords);
 
         if (!measurements.isEmpty()) {
             StringBuilder sb = new StringBuilder(numRecords * 32);
-            for (Record<MeasurementKey, EmpaticaE4InterBeatInterval> measurement : measurements) {
+            for (Record<ObservationKey, EmpaticaE4InterBeatInterval> measurement : measurements) {
                 long timeMs = Math.round(1000d * measurement.value.getTimeReceived());
                 double diffTime = (System.currentTimeMillis() - timeMs) / 1000d;
                 sb.append(singleDecimal.format(diffTime));

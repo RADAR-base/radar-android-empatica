@@ -23,7 +23,7 @@ import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.BaseDeviceState;
 import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
 import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,9 +57,9 @@ public class E4Service extends DeviceService {
     }
 
     @Override
-    protected List<AvroTopic<MeasurementKey, ? extends SpecificRecord>> getCachedTopics() {
+    protected List<AvroTopic<ObservationKey, ? extends SpecificRecord>> getCachedTopics() {
         E4Topics topics = getTopics();
-        return Arrays.<AvroTopic<MeasurementKey, ? extends SpecificRecord>>asList(
+        return Arrays.<AvroTopic<ObservationKey, ? extends SpecificRecord>>asList(
                 topics.getAccelerationTopic(), topics.getBloodVolumePulseTopic(),
                 topics.getElectroDermalActivityTopic(), topics.getInterBeatIntervalTopic(),
                 topics.getTemperatureTopic(), topics.getSensorStatusTopic());

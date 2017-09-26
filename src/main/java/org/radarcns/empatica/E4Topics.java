@@ -17,18 +17,25 @@
 package org.radarcns.empatica;
 
 import org.radarcns.android.device.DeviceTopics;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.empatica.EmpaticaE4Acceleration;
+import org.radarcns.passive.empatica.EmpaticaE4BatteryLevel;
+import org.radarcns.passive.empatica.EmpaticaE4BloodVolumePulse;
+import org.radarcns.passive.empatica.EmpaticaE4ElectroDermalActivity;
+import org.radarcns.passive.empatica.EmpaticaE4InterBeatInterval;
+import org.radarcns.passive.empatica.EmpaticaE4SensorStatus;
+import org.radarcns.passive.empatica.EmpaticaE4Temperature;
 import org.radarcns.topic.AvroTopic;
 
 /** Topic manager for topics concerning the Empatica E4. */
 public class E4Topics extends DeviceTopics {
-    private final AvroTopic<MeasurementKey, EmpaticaE4Acceleration> accelerationTopic;
-    private final AvroTopic<MeasurementKey, EmpaticaE4BatteryLevel> batteryLevelTopic;
-    private final AvroTopic<MeasurementKey, EmpaticaE4BloodVolumePulse> bloodVolumePulseTopic;
-    private final AvroTopic<MeasurementKey, EmpaticaE4ElectroDermalActivity> edaTopic;
-    private final AvroTopic<MeasurementKey, EmpaticaE4InterBeatInterval> interBeatIntervalTopic;
-    private final AvroTopic<MeasurementKey, EmpaticaE4Temperature> temperatureTopic;
-    private final AvroTopic<MeasurementKey, EmpaticaE4SensorStatus> sensorStatusTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4Acceleration> accelerationTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4BatteryLevel> batteryLevelTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4BloodVolumePulse> bloodVolumePulseTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4ElectroDermalActivity> edaTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> interBeatIntervalTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4Temperature> temperatureTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4SensorStatus> sensorStatusTopic;
 
     private static final Object syncObject = new Object();
     private static E4Topics instance = null;
@@ -66,31 +73,31 @@ public class E4Topics extends DeviceTopics {
                 EmpaticaE4SensorStatus.class);
     }
 
-    public AvroTopic<MeasurementKey, EmpaticaE4Acceleration> getAccelerationTopic() {
+    public AvroTopic<ObservationKey, EmpaticaE4Acceleration> getAccelerationTopic() {
         return accelerationTopic;
     }
 
-    public AvroTopic<MeasurementKey, EmpaticaE4BatteryLevel> getBatteryLevelTopic() {
+    public AvroTopic<ObservationKey, EmpaticaE4BatteryLevel> getBatteryLevelTopic() {
         return batteryLevelTopic;
     }
 
-    public AvroTopic<MeasurementKey, EmpaticaE4BloodVolumePulse> getBloodVolumePulseTopic() {
+    public AvroTopic<ObservationKey, EmpaticaE4BloodVolumePulse> getBloodVolumePulseTopic() {
         return bloodVolumePulseTopic;
     }
 
-    public AvroTopic<MeasurementKey, EmpaticaE4ElectroDermalActivity> getElectroDermalActivityTopic() {
+    public AvroTopic<ObservationKey, EmpaticaE4ElectroDermalActivity> getElectroDermalActivityTopic() {
         return edaTopic;
     }
 
-    public AvroTopic<MeasurementKey, EmpaticaE4InterBeatInterval> getInterBeatIntervalTopic() {
+    public AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> getInterBeatIntervalTopic() {
         return interBeatIntervalTopic;
     }
 
-    public AvroTopic<MeasurementKey, EmpaticaE4Temperature> getTemperatureTopic() {
+    public AvroTopic<ObservationKey, EmpaticaE4Temperature> getTemperatureTopic() {
         return temperatureTopic;
     }
 
-    public AvroTopic<MeasurementKey, EmpaticaE4SensorStatus> getSensorStatusTopic() {
+    public AvroTopic<ObservationKey, EmpaticaE4SensorStatus> getSensorStatusTopic() {
         return sensorStatusTopic;
     }
 }
