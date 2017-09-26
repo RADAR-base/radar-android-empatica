@@ -34,7 +34,14 @@ import org.radarcns.android.data.DataCache;
 import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
+import org.radarcns.passive.empatica.EmpaticaE4Acceleration;
+import org.radarcns.passive.empatica.EmpaticaE4BatteryLevel;
+import org.radarcns.passive.empatica.EmpaticaE4BloodVolumePulse;
+import org.radarcns.passive.empatica.EmpaticaE4ElectroDermalActivity;
+import org.radarcns.passive.empatica.EmpaticaE4InterBeatInterval;
+import org.radarcns.passive.empatica.EmpaticaE4SensorStatus;
+import org.radarcns.passive.empatica.EmpaticaE4Temperature;
 import org.radarcns.topic.AvroTopic;
 import org.radarcns.util.Strings;
 import org.slf4j.Logger;
@@ -51,13 +58,13 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private Handler mHandler;
     private final HandlerThread mHandlerThread;
 
-    private final DataCache<MeasurementKey, EmpaticaE4Acceleration> accelerationTable;
-    private final DataCache<MeasurementKey, EmpaticaE4BloodVolumePulse> bvpTable;
-    private final DataCache<MeasurementKey, EmpaticaE4ElectroDermalActivity> edaTable;
-    private final DataCache<MeasurementKey, EmpaticaE4InterBeatInterval> ibiTable;
-    private final DataCache<MeasurementKey, EmpaticaE4Temperature> temperatureTable;
-    private final DataCache<MeasurementKey, EmpaticaE4SensorStatus> sensorStatusTable;
-    private final AvroTopic<MeasurementKey, EmpaticaE4BatteryLevel> batteryTopic;
+    private final DataCache<ObservationKey, EmpaticaE4Acceleration> accelerationTable;
+    private final DataCache<ObservationKey, EmpaticaE4BloodVolumePulse> bvpTable;
+    private final DataCache<ObservationKey, EmpaticaE4ElectroDermalActivity> edaTable;
+    private final DataCache<ObservationKey, EmpaticaE4InterBeatInterval> ibiTable;
+    private final DataCache<ObservationKey, EmpaticaE4Temperature> temperatureTable;
+    private final DataCache<ObservationKey, EmpaticaE4SensorStatus> sensorStatusTable;
+    private final AvroTopic<ObservationKey, EmpaticaE4BatteryLevel> batteryTopic;
 
     private EmpaDeviceManager deviceManager;
     private boolean isScanning;
