@@ -29,9 +29,7 @@ import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
-import org.apache.avro.JsonProperties;
 import org.radarcns.android.data.DataCache;
-import org.radarcns.android.data.TableDataHandler;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.kafka.ObservationKey;
@@ -70,15 +68,16 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private boolean isScanning;
     private Pattern[] acceptableIds;
 
-    public E4DeviceManager(E4Service e4Service, String apiKey, String userId, TableDataHandler dataHandler, E4Topics topics) {
-        super(e4Service, new E4DeviceStatus(), dataHandler, userId, null);
+    public E4DeviceManager(E4Service e4Service, String apiKey) {
+        super(e4Service);
 
-        this.accelerationTable = dataHandler.getCache(topics.getAccelerationTopic());
-        this.bvpTable = dataHandler.getCache(topics.getBloodVolumePulseTopic());
-        this.edaTable = dataHandler.getCache(topics.getElectroDermalActivityTopic());
-        this.ibiTable = dataHandler.getCache(topics.getInterBeatIntervalTopic());
-        this.temperatureTable = dataHandler.getCache(topics.getTemperatureTopic());
-        this.sensorStatusTable = dataHandler.getCache(topics.getSensorStatusTopic());
+        E4Topics topics = e4Service.getTopics();
+        this.accelerationTable = getCache(topics.getAccelerationTopic());
+        this.bvpTable = getCache(topics.getBloodVolumePulseTopic());
+        this.edaTable = getCache(topics.getElectroDermalActivityTopic());
+        this.ibiTable = getCache(topics.getInterBeatIntervalTopic());
+        this.temperatureTable = getCache(topics.getTemperatureTopic());
+        this.sensorStatusTable = getCache(topics.getSensorStatusTopic());
         this.batteryTopic = topics.getBatteryLevelTopic();
 
         this.apiKey = apiKey;
