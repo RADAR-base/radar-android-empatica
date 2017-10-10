@@ -15,7 +15,7 @@ apply plugin: 'com.github.dcendents.android-maven'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    buildToolsVersion "26.0.1"
 
     defaultConfig {
         minSdkVersion 21
@@ -118,7 +118,7 @@ artifacts {
     archives sourcesJar
 }
 
-def pomConfig = {
+ext.pomConfig = {
     licenses {
         license {
             name "The Apache Software License, Version 2.0"
@@ -200,6 +200,6 @@ bintray {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.4.1'
-    distributionUrl distributionUrl.replace("bin", "all")
+    gradleVersion = '4.1'
+    distributionType 'all'
 }
