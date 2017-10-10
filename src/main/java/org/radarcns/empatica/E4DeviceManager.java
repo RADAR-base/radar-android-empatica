@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
+import android.util.ArrayMap;
 import com.empatica.empalink.ConnectionNotAllowedException;
 import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.config.EmpaSensorStatus;
@@ -45,6 +46,8 @@ import org.radarcns.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -182,7 +185,12 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                         // Connect to the device
                         updateStatus(DeviceStatusListener.Status.CONNECTING);
                         deviceManager.connectDevice(bluetoothDevice);
-                        getState().getId().setSourceId(sourceId);
+
+                        Map<String, String> attributes = new ArrayMap<>(3);
+                        attributes.put("sdk", "empalink-2.1.aar");
+                        attributes.put("macAddress", bluetoothDevice.getAddress());
+                        attributes.put("name", deviceName);
+                        getService().registerDevice(deviceName, attributes);
                     } catch (ConnectionNotAllowedException e) {
                         // This should happen only if you try to connect when allowed == false.
                         getService().deviceFailedToConnect(deviceName);
@@ -200,6 +208,11 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         if (localHander != null) {
             localHander.post(runnable);
         }
+    }
+
+    @Override
+    protected void registerDeviceAtReady() {
+        // do not register at ready, register later
     }
 
     private synchronized Handler getHandler() {
