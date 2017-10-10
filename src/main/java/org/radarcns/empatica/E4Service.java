@@ -17,11 +17,8 @@
 package org.radarcns.empatica;
 
 import android.os.Bundle;
-
 import org.apache.avro.specific.SpecificRecord;
 import org.radarcns.android.RadarConfiguration;
-import org.radarcns.android.device.BaseDeviceState;
-import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.topic.AvroTopic;
