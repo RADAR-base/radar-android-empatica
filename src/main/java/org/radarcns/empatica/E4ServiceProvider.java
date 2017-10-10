@@ -17,8 +17,6 @@
 package org.radarcns.empatica;
 
 import android.os.Bundle;
-import android.os.Parcelable;
-
 import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.DeviceServiceProvider;
@@ -34,6 +32,11 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
     @Override
     public Class<?> getServiceClass() {
         return E4Service.class;
+    }
+
+    @Override
+    public String getDescription() {
+        return getActivity().getString(R.string.empatica_e4_explanation);
     }
 
     @Override
