@@ -37,17 +37,17 @@ import static org.radarcns.android.RadarConfiguration.EMPATICA_API_KEY;
  * A service that manages a E4DeviceManager and a TableDataHandler to send store the data of an
  * Empatica E4 and send it to a Kafka REST proxy.
  */
-public class E4Service extends DeviceService {
+public class E4Service extends DeviceService<E4DeviceStatus> {
     private static final Logger logger = LoggerFactory.getLogger(E4Service.class);
     private String apiKey;
 
     @Override
-    protected DeviceManager createDeviceManager() {
-        return new E4DeviceManager(this, apiKey, getUserId(), getDataHandler(), getTopics());
+    protected E4DeviceManager createDeviceManager() {
+        return new E4DeviceManager(this, apiKey);
     }
 
     @Override
-    protected BaseDeviceState getDefaultState() {
+    protected E4DeviceStatus getDefaultState() {
         return new E4DeviceStatus();
     }
 

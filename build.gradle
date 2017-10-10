@@ -65,8 +65,13 @@ ext.website = 'http://radar-cns.org'
 // Sources and classpath configurations                                      //
 //---------------------------------------------------------------------------//
 
+configurations.compile {
+    resolutionStrategy.cacheChangingModulesFor 0, 'SECONDS'
+}
+
 repositories {
     jcenter()
+    maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
     flatDir { dirs 'libs' }
 }
 
@@ -75,11 +80,8 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.3.1'
 
     compile 'com.squareup.okhttp:okhttp:2.5.0'
-    compile 'org.radarcns:radar-commons-android:0.3-SNAPSHOT@aar'
+    compile 'org.radarcns:radar-commons-android:0.3-SNAPSHOT'
     compile 'org.radarcns:radar-schemas-commons:0.2-alpha.3-SNAPSHOT'
-    compile 'org.radarcns:radar-commons:0.6-SNAPSHOT'
-    compile 'org.slf4j:slf4j-api:1.7.25'
-    compile 'org.apache.avro:avro:1.8.2'
 
     testCompile 'junit:junit:4.12'
     testCompile 'org.slf4j:slf4j-simple:1.7.25'
