@@ -46,7 +46,7 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
 
     @SuppressWarnings("unchecked")
     public void showDetailView() {
-        new E4HeartbeatToast(getRadarService(), getConnection()).execute();
+        new E4HeartbeatToast(getConnection()).execute();
     }
 
     @Override

@@ -16,7 +16,6 @@
 
 package org.radarcns.empatica;
 
-import android.content.Context;
 import android.os.AsyncTask;
 import android.widget.Toast;
 import org.radarcns.android.device.DeviceServiceConnection;
@@ -24,7 +23,6 @@ import org.radarcns.android.util.Boast;
 import org.radarcns.data.Record;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.empatica.EmpaticaE4InterBeatInterval;
-import org.radarcns.topic.AvroTopic;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -35,45 +33,41 @@ import java.util.List;
  */
 public class E4HeartbeatToast extends
         AsyncTask<Void, Void, String> {
-    private final Context context;
     private final DeviceServiceConnection<E4DeviceStatus> connection;
     private static final DecimalFormat singleDecimal = new DecimalFormat("0.0");
 
-    public E4HeartbeatToast(Context context, DeviceServiceConnection<E4DeviceStatus> connection) {
-        this.context = context;
+    public E4HeartbeatToast(DeviceServiceConnection<E4DeviceStatus> connection) {
         this.connection = connection;
     }
 
     @Override
     @SafeVarargs
     protected final String doInBackground(Void... params) {
-        AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> topic = E4DeviceManager.interBeatIntervalTopic;
-        if (topic != null) {
-            try {
-                List<Record<ObservationKey, EmpaticaE4InterBeatInterval>> measurements =
-                        connection.getRecords(topic, 2);
+        try {
+            List<Record<ObservationKey, EmpaticaE4InterBeatInterval>> measurements =
+                    connection.getRecords("android_empatica_e4_inter_beat_interval", 2);
 
-                if (!measurements.isEmpty()) {
-                    StringBuilder sb = new StringBuilder(64);
-                    for (Record<ObservationKey, EmpaticaE4InterBeatInterval> measurement : measurements) {
-                        long timeMs = Math.round(1000d * measurement.value.getTimeReceived());
-                        double diffTime = (System.currentTimeMillis() - timeMs) / 1000d;
-                        sb.append(singleDecimal.format(diffTime));
-                        sb.append(" sec. ago: ");
-                        sb.append(singleDecimal.format(60d / measurement.value.getInterBeatInterval()));
-                        sb.append(" bpm\n");
-                    }
-                    return sb.toString();
+            if (!measurements.isEmpty()) {
+                StringBuilder sb = new StringBuilder(64);
+                for (Record<ObservationKey, EmpaticaE4InterBeatInterval> measurement : measurements) {
+                    long timeMs = Math.round(1000d * measurement.value.getTimeReceived());
+                    double diffTime = (System.currentTimeMillis() - timeMs) / 1000d;
+                    sb.append(singleDecimal.format(diffTime));
+                    sb.append(" sec. ago: ");
+                    sb.append(singleDecimal.format(60d / measurement.value.getInterBeatInterval()));
+                    sb.append(" bpm\n");
                 }
-            } catch (IOException ignore) {
+                return sb.toString();
             }
+        } catch (IOException ignore) {
         }
+
         return "No heart rate collected yet.";
     }
 
 
     @Override
     protected void onPostExecute(String s) {
-        Boast.makeText(context, s, Toast.LENGTH_LONG).show();
+        Boast.makeText(connection.getContext(), s, Toast.LENGTH_LONG).show();
     }
 }
