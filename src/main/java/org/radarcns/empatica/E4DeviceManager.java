@@ -57,13 +57,20 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private Handler mHandler;
     private final HandlerThread mHandlerThread;
 
-    private final AvroTopic<ObservationKey, EmpaticaE4Acceleration> accelerationTopic;
-    private final AvroTopic<ObservationKey, EmpaticaE4BatteryLevel> batteryLevelTopic;
-    private final AvroTopic<ObservationKey, EmpaticaE4BloodVolumePulse> bloodVolumePulseTopic;
-    private final AvroTopic<ObservationKey, EmpaticaE4ElectroDermalActivity> edaTopic;
-    static volatile AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> interBeatIntervalTopic;
-    private final AvroTopic<ObservationKey, EmpaticaE4Temperature> temperatureTopic;
-    private final AvroTopic<ObservationKey, EmpaticaE4SensorStatus> sensorStatusTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4Acceleration> accelerationTopic =
+            createTopic("android_empatica_e4_acceleration", EmpaticaE4Acceleration.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4BatteryLevel> batteryLevelTopic =
+            createTopic("android_empatica_e4_battery_level", EmpaticaE4BatteryLevel.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4BloodVolumePulse> bloodVolumePulseTopic =
+            createTopic("android_empatica_e4_blood_volume_pulse", EmpaticaE4BloodVolumePulse.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4ElectroDermalActivity> edaTopic =
+            createTopic("android_empatica_e4_electrodermal_activity", EmpaticaE4ElectroDermalActivity.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> interBeatIntervalTopic =
+            createTopic("android_empatica_e4_inter_beat_interval", EmpaticaE4InterBeatInterval.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4Temperature> temperatureTopic =
+            createTopic("android_empatica_e4_temperature", EmpaticaE4Temperature.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4SensorStatus> sensorStatusTopic =
+            createTopic("android_empatica_e4_sensor_status", EmpaticaE4SensorStatus.class);
 
     private EmpaDeviceManager deviceManager;
     private boolean isScanning;
@@ -71,14 +78,6 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
 
     public E4DeviceManager(E4Service e4Service, String apiKey) {
         super(e4Service);
-
-        accelerationTopic = createTopic("android_empatica_e4_acceleration", EmpaticaE4Acceleration.class);
-        batteryLevelTopic = createTopic("android_empatica_e4_battery_level", EmpaticaE4BatteryLevel.class);
-        bloodVolumePulseTopic = createTopic("android_empatica_e4_blood_volume_pulse", EmpaticaE4BloodVolumePulse.class);
-        edaTopic = createTopic("android_empatica_e4_electrodermal_activity", EmpaticaE4ElectroDermalActivity.class);
-        interBeatIntervalTopic = createTopic("android_empatica_e4_inter_beat_interval", EmpaticaE4InterBeatInterval.class);
-        temperatureTopic = createTopic("android_empatica_e4_temperature", EmpaticaE4Temperature.class);
-        sensorStatusTopic = createTopic("android_empatica_e4_sensor_status", EmpaticaE4SensorStatus.class);
 
         this.apiKey = apiKey;
         deviceManager = null;
