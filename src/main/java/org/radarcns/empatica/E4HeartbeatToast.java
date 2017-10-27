@@ -18,9 +18,7 @@ package org.radarcns.empatica;
 
 import android.content.Context;
 import android.os.AsyncTask;
-import android.os.RemoteException;
 import android.widget.Toast;
-
 import org.radarcns.android.device.DeviceServiceConnection;
 import org.radarcns.android.util.Boast;
 import org.radarcns.data.Record;
@@ -36,59 +34,46 @@ import java.util.List;
  * Shows recently collected heartbeats in a Toast.
  */
 public class E4HeartbeatToast extends
-        AsyncTask<DeviceServiceConnection<E4DeviceStatus>, Void, String[]> {
+        AsyncTask<Void, Void, String> {
     private final Context context;
+    private final DeviceServiceConnection<E4DeviceStatus> connection;
     private static final DecimalFormat singleDecimal = new DecimalFormat("0.0");
-    private static final AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> topic = E4Topics
-            .getInstance().getInterBeatIntervalTopic();
 
-    public E4HeartbeatToast(Context context) {
+    public E4HeartbeatToast(Context context, DeviceServiceConnection<E4DeviceStatus> connection) {
         this.context = context;
+        this.connection = connection;
     }
 
     @Override
     @SafeVarargs
-    protected final String[] doInBackground(DeviceServiceConnection<E4DeviceStatus>... params) {
-        String[] results = new String[params.length];
-        for (int i = 0; i < params.length; i++) {
+    protected final String doInBackground(Void... params) {
+        AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> topic = E4DeviceManager.interBeatIntervalTopic;
+        if (topic != null) {
             try {
-                results[i] = doOne(params[i], 2);
-            } catch (RemoteException | IOException e) {
-                results[i] = null;
+                List<Record<ObservationKey, EmpaticaE4InterBeatInterval>> measurements =
+                        connection.getRecords(topic, 2);
+
+                if (!measurements.isEmpty()) {
+                    StringBuilder sb = new StringBuilder(64);
+                    for (Record<ObservationKey, EmpaticaE4InterBeatInterval> measurement : measurements) {
+                        long timeMs = Math.round(1000d * measurement.value.getTimeReceived());
+                        double diffTime = (System.currentTimeMillis() - timeMs) / 1000d;
+                        sb.append(singleDecimal.format(diffTime));
+                        sb.append(" sec. ago: ");
+                        sb.append(singleDecimal.format(60d / measurement.value.getInterBeatInterval()));
+                        sb.append(" bpm\n");
+                    }
+                    return sb.toString();
+                }
+            } catch (IOException ignore) {
             }
         }
-        return results;
+        return "No heart rate collected yet.";
     }
 
-    private String doOne(DeviceServiceConnection<E4DeviceStatus> param, int numRecords)
-            throws IOException, RemoteException {
-        List<Record<ObservationKey, EmpaticaE4InterBeatInterval>> measurements = param
-                .getRecords(topic, numRecords);
-
-        if (!measurements.isEmpty()) {
-            StringBuilder sb = new StringBuilder(numRecords * 32);
-            for (Record<ObservationKey, EmpaticaE4InterBeatInterval> measurement : measurements) {
-                long timeMs = Math.round(1000d * measurement.value.getTimeReceived());
-                double diffTime = (System.currentTimeMillis() - timeMs) / 1000d;
-                sb.append(singleDecimal.format(diffTime));
-                sb.append(" sec. ago: ");
-                sb.append(singleDecimal.format(60d / measurement.value.getInterBeatInterval()));
-                sb.append(" bpm\n");
-            }
-            return sb.toString();
-        } else {
-            return null;
-        }
-    }
 
     @Override
-    protected void onPostExecute(String[] strings) {
-        for (String s : strings) {
-            if (s == null) {
-                Boast.makeText(context, "No heart rate collected yet.", Toast.LENGTH_SHORT).show();
-            } else {
-                Boast.makeText(context, s, Toast.LENGTH_LONG).show();
-            }
-        }
+    protected void onPostExecute(String s) {
+        Boast.makeText(context, s, Toast.LENGTH_LONG).show();
     }
 }

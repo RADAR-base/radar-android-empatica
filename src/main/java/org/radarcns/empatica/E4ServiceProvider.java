@@ -36,7 +36,7 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
 
     @Override
     public String getDescription() {
-        return getActivity().getString(R.string.empatica_e4_explanation);
+        return getRadarService().getString(R.string.empatica_e4_explanation);
     }
 
     @Override
@@ -46,7 +46,7 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
 
     @SuppressWarnings("unchecked")
     public void showDetailView() {
-        new E4HeartbeatToast(getActivity()).execute(getConnection());
+        new E4HeartbeatToast(getRadarService(), getConnection()).execute();
     }
 
     @Override
@@ -57,7 +57,7 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
 
     @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.empaticaE4DisplayName);
+        return getRadarService().getString(R.string.empaticaE4DisplayName);
     }
 
     @Override
