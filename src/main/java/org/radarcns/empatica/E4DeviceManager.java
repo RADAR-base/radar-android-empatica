@@ -30,7 +30,6 @@ import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
-import org.radarcns.android.data.DataCache;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
 import org.radarcns.kafka.ObservationKey;
@@ -46,7 +45,6 @@ import org.radarcns.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -59,13 +57,20 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private Handler mHandler;
     private final HandlerThread mHandlerThread;
 
-    private final DataCache<ObservationKey, EmpaticaE4Acceleration> accelerationTable;
-    private final DataCache<ObservationKey, EmpaticaE4BloodVolumePulse> bvpTable;
-    private final DataCache<ObservationKey, EmpaticaE4ElectroDermalActivity> edaTable;
-    private final DataCache<ObservationKey, EmpaticaE4InterBeatInterval> ibiTable;
-    private final DataCache<ObservationKey, EmpaticaE4Temperature> temperatureTable;
-    private final DataCache<ObservationKey, EmpaticaE4SensorStatus> sensorStatusTable;
-    private final AvroTopic<ObservationKey, EmpaticaE4BatteryLevel> batteryTopic;
+    private final AvroTopic<ObservationKey, EmpaticaE4Acceleration> accelerationTopic =
+            createTopic("android_empatica_e4_acceleration", EmpaticaE4Acceleration.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4BatteryLevel> batteryLevelTopic =
+            createTopic("android_empatica_e4_battery_level", EmpaticaE4BatteryLevel.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4BloodVolumePulse> bloodVolumePulseTopic =
+            createTopic("android_empatica_e4_blood_volume_pulse", EmpaticaE4BloodVolumePulse.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4ElectroDermalActivity> edaTopic =
+            createTopic("android_empatica_e4_electrodermal_activity", EmpaticaE4ElectroDermalActivity.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4InterBeatInterval> interBeatIntervalTopic =
+            createTopic("android_empatica_e4_inter_beat_interval", EmpaticaE4InterBeatInterval.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4Temperature> temperatureTopic =
+            createTopic("android_empatica_e4_temperature", EmpaticaE4Temperature.class);
+    private final AvroTopic<ObservationKey, EmpaticaE4SensorStatus> sensorStatusTopic =
+            createTopic("android_empatica_e4_sensor_status", EmpaticaE4SensorStatus.class);
 
     private EmpaDeviceManager deviceManager;
     private boolean isScanning;
@@ -73,15 +78,6 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
 
     public E4DeviceManager(E4Service e4Service, String apiKey) {
         super(e4Service);
-
-        E4Topics topics = e4Service.getTopics();
-        this.accelerationTable = getCache(topics.getAccelerationTopic());
-        this.bvpTable = getCache(topics.getBloodVolumePulseTopic());
-        this.edaTable = getCache(topics.getElectroDermalActivityTopic());
-        this.ibiTable = getCache(topics.getInterBeatIntervalTopic());
-        this.temperatureTable = getCache(topics.getTemperatureTopic());
-        this.sensorStatusTable = getCache(topics.getSensorStatusTopic());
-        this.batteryTopic = topics.getBatteryLevelTopic();
 
         this.apiKey = apiKey;
         deviceManager = null;
@@ -287,42 +283,42 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                 timestamp, System.currentTimeMillis() / 1000d,
                 latestAcceleration[0], latestAcceleration[1], latestAcceleration[2]);
 
-        send(accelerationTable, value);
+        send(accelerationTopic, value);
     }
 
     @Override
     public void didReceiveBVP(float bvp, double timestamp) {
         getState().setBloodVolumePulse(bvp);
         EmpaticaE4BloodVolumePulse value = new EmpaticaE4BloodVolumePulse(timestamp, System.currentTimeMillis() / 1000d, bvp);
-        send(bvpTable, value);
+        send(bloodVolumePulseTopic, value);
     }
 
     @Override
     public void didReceiveBatteryLevel(float battery, double timestamp) {
         getState().setBatteryLevel(battery);
         EmpaticaE4BatteryLevel value = new EmpaticaE4BatteryLevel(timestamp, System.currentTimeMillis() / 1000d, battery);
-        trySend(batteryTopic, 0L, value);
+        trySend(batteryLevelTopic, 0L, value);
     }
 
     @Override
     public void didReceiveGSR(float gsr, double timestamp) {
         getState().setElectroDermalActivity(gsr);
         EmpaticaE4ElectroDermalActivity value = new EmpaticaE4ElectroDermalActivity(timestamp, System.currentTimeMillis() / 1000d, gsr);
-        send(edaTable, value);
+        send(edaTopic, value);
     }
 
     @Override
     public void didReceiveIBI(float ibi, double timestamp) {
         getState().setInterBeatInterval(ibi);
         EmpaticaE4InterBeatInterval value = new EmpaticaE4InterBeatInterval(timestamp, System.currentTimeMillis() / 1000d, ibi);
-        send(ibiTable, value);
+        send(interBeatIntervalTopic, value);
     }
 
     @Override
     public void didReceiveTemperature(float temperature, double timestamp) {
         getState().setTemperature(temperature);
         EmpaticaE4Temperature value = new EmpaticaE4Temperature(timestamp, System.currentTimeMillis() / 1000d, temperature);
-        send(temperatureTable, value);
+        send(temperatureTopic, value);
     }
 
     @Override
@@ -330,6 +326,6 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         getState().setSensorStatus(empaSensorType, empaSensorStatus);
         double now = System.currentTimeMillis() / 1000d;
         EmpaticaE4SensorStatus value = new EmpaticaE4SensorStatus(now, now, empaSensorType.name(), empaSensorStatus.name());
-        send(sensorStatusTable, value);
+        send(sensorStatusTopic, value);
     }
 }

@@ -49,20 +49,6 @@ public class E4Service extends DeviceService<E4DeviceStatus> {
     }
 
     @Override
-    protected E4Topics getTopics() {
-        return E4Topics.getInstance();
-    }
-
-    @Override
-    protected List<AvroTopic<ObservationKey, ? extends SpecificRecord>> getCachedTopics() {
-        E4Topics topics = getTopics();
-        return Arrays.<AvroTopic<ObservationKey, ? extends SpecificRecord>>asList(
-                topics.getAccelerationTopic(), topics.getBloodVolumePulseTopic(),
-                topics.getElectroDermalActivityTopic(), topics.getInterBeatIntervalTopic(),
-                topics.getTemperatureTopic(), topics.getSensorStatusTopic());
-    }
-
-    @Override
     protected void onInvocation(Bundle bundle) {
         super.onInvocation(bundle);
         if (apiKey == null) {
