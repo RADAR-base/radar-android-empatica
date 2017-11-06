@@ -17,13 +17,10 @@
 package org.radarcns.empatica;
 
 import android.os.Bundle;
-
 import org.apache.avro.specific.SpecificRecord;
 import org.radarcns.android.RadarConfiguration;
-import org.radarcns.android.device.BaseDeviceState;
-import org.radarcns.android.device.DeviceManager;
 import org.radarcns.android.device.DeviceService;
-import org.radarcns.key.MeasurementKey;
+import org.radarcns.kafka.ObservationKey;
 import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,32 +34,18 @@ import static org.radarcns.android.RadarConfiguration.EMPATICA_API_KEY;
  * A service that manages a E4DeviceManager and a TableDataHandler to send store the data of an
  * Empatica E4 and send it to a Kafka REST proxy.
  */
-public class E4Service extends DeviceService {
+public class E4Service extends DeviceService<E4DeviceStatus> {
     private static final Logger logger = LoggerFactory.getLogger(E4Service.class);
     private String apiKey;
 
     @Override
-    protected DeviceManager createDeviceManager() {
-        return new E4DeviceManager(this, apiKey, getUserId(), getDataHandler(), getTopics());
+    protected E4DeviceManager createDeviceManager() {
+        return new E4DeviceManager(this, apiKey);
     }
 
     @Override
-    protected BaseDeviceState getDefaultState() {
+    protected E4DeviceStatus getDefaultState() {
         return new E4DeviceStatus();
-    }
-
-    @Override
-    protected E4Topics getTopics() {
-        return E4Topics.getInstance();
-    }
-
-    @Override
-    protected List<AvroTopic<MeasurementKey, ? extends SpecificRecord>> getCachedTopics() {
-        E4Topics topics = getTopics();
-        return Arrays.<AvroTopic<MeasurementKey, ? extends SpecificRecord>>asList(
-                topics.getAccelerationTopic(), topics.getBloodVolumePulseTopic(),
-                topics.getElectroDermalActivityTopic(), topics.getInterBeatIntervalTopic(),
-                topics.getTemperatureTopic(), topics.getSensorStatusTopic());
     }
 
     @Override

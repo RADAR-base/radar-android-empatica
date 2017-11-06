@@ -17,8 +17,7 @@
 package org.radarcns.empatica;
 
 import android.os.Bundle;
-import android.os.Parcelable;
-
+import android.support.annotation.NonNull;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.DeviceServiceProvider;
 
@@ -36,8 +35,8 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
     }
 
     @Override
-    public Parcelable.Creator<E4DeviceStatus> getStateCreator() {
-        return E4DeviceStatus.CREATOR;
+    public String getDescription() {
+        return getRadarService().getString(R.string.empatica_e4_explanation);
     }
 
     @Override
@@ -45,8 +44,9 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
         return true;
     }
 
+    @SuppressWarnings("unchecked")
     public void showDetailView() {
-        new E4HeartbeatToast(getActivity()).execute(getConnection());
+        new E4HeartbeatToast(getConnection()).execute();
     }
 
     @Override
@@ -57,7 +57,7 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
 
     @Override
     public String getDisplayName() {
-        return getActivity().getString(R.string.empaticaE4DisplayName);
+        return getRadarService().getString(R.string.empaticaE4DisplayName);
     }
 
     @Override
@@ -68,5 +68,23 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
     @Override
     public List<String> needsPermissions() {
         return Arrays.asList(ACCESS_COARSE_LOCATION, BLUETOOTH, BLUETOOTH_ADMIN);
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceProducer() {
+        return "Empatica";
+    }
+
+    @NonNull
+    @Override
+    public String getDeviceModel() {
+        return "E4";
+    }
+
+    @NonNull
+    @Override
+    public String getVersion() {
+        return BuildConfig.VERSION_NAME;
     }
 }

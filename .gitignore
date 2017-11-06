@@ -93,9 +93,8 @@ fabric.properties
 
 *.iml
 modules.xml
-.idea/misc.xml
 *.ipr
-.idea/runConfigurations.xml
+.idea/
 
 /libs/*.aar
 

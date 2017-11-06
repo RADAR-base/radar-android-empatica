@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.2.3'
+        classpath 'com.android.tools.build:gradle:2.3.0'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
@@ -15,13 +15,13 @@ apply plugin: 'com.github.dcendents.android-maven'
 
 android {
     compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    buildToolsVersion "26.0.1"
 
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 25
-        versionCode 3
-        versionName '0.1-alpha.3'
+        versionCode 4
+        versionName '0.1'
     }
     buildTypes {
         release {
@@ -65,21 +65,27 @@ ext.website = 'http://radar-cns.org'
 // Sources and classpath configurations                                      //
 //---------------------------------------------------------------------------//
 
+configurations.compile {
+    resolutionStrategy.cacheChangingModulesFor 0, 'SECONDS'
+}
+
 repositories {
     jcenter()
+    maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
     flatDir { dirs 'libs' }
 }
 
 dependencies {
     compile 'com.empatica:empalink:2.1@aar'
+    compile 'org.radarcns:radar-commons:0.6'
     compile 'com.android.support:appcompat-v7:25.3.1'
 
     compile 'com.squareup.okhttp:okhttp:2.5.0'
-    compile 'org.radarcns:radar-commons-android:0.2'
-    compile 'org.radarcns:radar-schemas-commons:0.1'
+    compile 'org.radarcns:radar-commons-android:0.3@aar'
+    compile 'org.radarcns:radar-schemas-commons:0.2'
 
     testCompile 'junit:junit:4.12'
-    testCompile 'org.slf4j:slf4j-simple:1.7.21'
+    testCompile 'org.slf4j:slf4j-simple:1.7.25'
 }
 
 //---------------------------------------------------------------------------//
@@ -115,7 +121,7 @@ artifacts {
     archives sourcesJar
 }
 
-def pomConfig = {
+ext.pomConfig = {
     licenses {
         license {
             name "The Apache Software License, Version 2.0"
@@ -134,6 +140,12 @@ def pomConfig = {
             id 'MaximMoinat'
             name 'Maxim Moinat'
             email 'maxim@thehyve.nl'
+            organization 'The Hyve'
+        }
+        developer {
+            id 'strangepleasures'
+            name 'Pavel Mikhailovskii'
+            email 'pavel@thehyve.nl'
             organization 'The Hyve'
         }
     }
@@ -197,6 +209,6 @@ bintray {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.4.1'
-    distributionUrl distributionUrl.replace("bin", "all")
+    gradleVersion = '4.1'
+    distributionType 'all'
 }
