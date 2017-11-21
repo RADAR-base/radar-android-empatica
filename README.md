@@ -19,14 +19,12 @@ In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` 
      }
      
      dependencies {
-         compile 'org.radarcns:radar-android-empatica:0.1'
+         compile 'org.radarcns:radar-android-empatica:0.1.1'
      }
      ```
     
 
-- Set your Empatica API key in the `empatica_api_key` xml element.
-- Set the `kafka_rest_proxy_url` and the `schema_registry_url`. If the app should not upload any data, leave them blank.
-- Set the `device_group_id` string to a suitable user ID.
+Set your Empatica API key in the `empatica_api_key` xml element.
 
 [1]: https://www.empatica.com/connect/developer.php
 
