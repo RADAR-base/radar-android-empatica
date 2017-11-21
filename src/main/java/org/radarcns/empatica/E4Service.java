@@ -17,16 +17,10 @@
 package org.radarcns.empatica;
 
 import android.os.Bundle;
-import org.apache.avro.specific.SpecificRecord;
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.DeviceService;
-import org.radarcns.kafka.ObservationKey;
-import org.radarcns.topic.AvroTopic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
-import java.util.List;
 
 import static org.radarcns.android.RadarConfiguration.EMPATICA_API_KEY;
 

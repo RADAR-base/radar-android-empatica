@@ -41,7 +41,6 @@ public class E4HeartbeatToast extends
     }
 
     @Override
-    @SafeVarargs
     protected final String doInBackground(Void... params) {
         try {
             List<Record<ObservationKey, EmpaticaE4InterBeatInterval>> measurements =
@@ -64,7 +63,6 @@ public class E4HeartbeatToast extends
 
         return "No heart rate collected yet.";
     }
-
 
     @Override
     protected void onPostExecute(String s) {
