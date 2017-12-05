@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
+        classpath 'com.android.tools.build:gradle:2.3.3'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
     }
@@ -14,12 +14,12 @@ apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.github.dcendents.android-maven'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "26.0.1"
+    compileSdkVersion 27
+    buildToolsVersion "27.0.1"
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 25
+        targetSdkVersion 27
         versionCode 7
         versionName '0.1.2-SNAPSHOT'
     }
@@ -71,17 +71,17 @@ configurations.compile {
 
 repositories {
     jcenter()
+    maven { url 'https://maven.google.com' }
     maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
     flatDir { dirs 'libs' }
 }
 
 dependencies {
     compile 'com.empatica:empalink:2.1@aar'
-    compile 'com.android.support:appcompat-v7:25.3.1'
 
     compile 'com.squareup.okhttp:okhttp:2.5.0'
-    compile 'org.radarcns:radar-commons-android:0.3.3'
-    compile 'org.radarcns:radar-schemas-commons:0.2'
+    compile 'org.radarcns:radar-commons-android:0.4'
+    compile 'org.radarcns:radar-schemas-commons:0.2.2'
 
     testCompile 'junit:junit:4.12'
     testCompile 'org.slf4j:slf4j-simple:1.7.25'
