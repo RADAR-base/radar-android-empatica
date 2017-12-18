@@ -6,9 +6,7 @@ The plugin application only runs on an ARM architecture and because of its Bluet
 
 ## Installation
 
-First, request an Empatica API key for your Empatica Connect account from their [Developer Area][1]. Also download the Empatica Android SDK there.
-
-In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` file (see the template `src/main/res/xml/remote_config_defaults_template.xml` in RADAR-Common-Android):
+First, request an Empatica Connect developer account from [Empatica's Developer Area][1]. Download the Empatica Android SDK there.
 
 - Download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.1.aar` from the Empatica Android SDK package to the `libs` directory of your application. Then the project can be edited with Android Studio. Add the following to your `build.gradle`:
         
@@ -24,9 +22,12 @@ In your application, edit the `app/src/main/res/xml/remote_config_defaults.xml` 
      ```
     
 
-Set your Empatica API key in the `empatica_api_key` xml element.
 
 [1]: https://www.empatica.com/connect/developer.php
+
+### Configuration
+
+Request an Empatica API key for your Empatica Connect account. Set your Empatica API key in the `empatica_api_key` Firebase parameter. The plugin can now be used with devices linked to your account.
 
 ## Contributing
 

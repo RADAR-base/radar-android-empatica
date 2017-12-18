@@ -18,7 +18,7 @@ package org.radarcns.empatica;
 
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import org.radarcns.android.RadarConfiguration;
+
 import org.radarcns.android.device.DeviceServiceProvider;
 
 import java.util.Arrays;
@@ -29,6 +29,8 @@ import static android.Manifest.permission.BLUETOOTH;
 import static android.Manifest.permission.BLUETOOTH_ADMIN;
 
 public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
+    public static final String EMPATICA_API_KEY = "empatica_api_key";
+
     @Override
     public Class<?> getServiceClass() {
         return E4Service.class;
@@ -52,7 +54,7 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
     @Override
     protected void configure(Bundle bundle) {
         super.configure(bundle);
-        getConfig().putExtras(bundle, RadarConfiguration.EMPATICA_API_KEY);
+        getConfig().putExtras(bundle, EMPATICA_API_KEY);
     }
 
     @Override

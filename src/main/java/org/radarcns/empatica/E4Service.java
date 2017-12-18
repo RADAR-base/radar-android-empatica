@@ -17,6 +17,8 @@
 package org.radarcns.empatica;
 
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+
 import org.radarcns.android.RadarConfiguration;
 import org.radarcns.android.device.DeviceService;
 import org.slf4j.Logger;
@@ -43,7 +45,7 @@ public class E4Service extends DeviceService<E4DeviceStatus> {
     }
 
     @Override
-    protected void onInvocation(Bundle bundle) {
+    protected void onInvocation(@NonNull Bundle bundle) {
         super.onInvocation(bundle);
         if (apiKey == null) {
             apiKey = RadarConfiguration.getStringExtra(bundle, EMPATICA_API_KEY);
