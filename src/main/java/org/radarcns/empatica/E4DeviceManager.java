@@ -23,6 +23,9 @@ import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
 import android.util.ArrayMap;
+import android.widget.Toast;
+
+import com.empatica.empalink.ConfigurationProfileException;
 import com.empatica.empalink.ConnectionNotAllowedException;
 import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.config.EmpaSensorStatus;
@@ -30,8 +33,10 @@ import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
+import org.radarcns.android.auth.AppSource;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
+import org.radarcns.android.util.Boast;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.empatica.EmpaticaE4Acceleration;
 import org.radarcns.passive.empatica.EmpaticaE4BatteryLevel;
@@ -54,6 +59,8 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private static final Logger logger = LoggerFactory.getLogger(E4DeviceManager.class);
 
     private final String apiKey;
+    private final Thread.UncaughtExceptionHandler originalExHandler;
+    private final Thread mainThread;
     private Handler mHandler;
     private final HandlerThread mHandlerThread;
 
@@ -83,6 +90,28 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         deviceManager = null;
         // Initialize the Device Manager using your API key. You need to have Internet access at this point.
         this.mHandlerThread = new HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_MORE_FAVORABLE);
+        this.mHandlerThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                logger.error("Empatica crashed. Disconnecting", e);
+                Boast.makeText(getService(), R.string.empatica_failed, Toast.LENGTH_LONG).show();
+                updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+            }
+        });
+        mainThread = Thread.currentThread();
+        originalExHandler = mainThread.getUncaughtExceptionHandler();
+        mainThread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                if (e instanceof ConfigurationProfileException) {
+                    logger.error("Empatica crashed because there is no internet connection. Disconnecting", e);
+                    Boast.makeText(getService(), R.string.empatica_failed, Toast.LENGTH_LONG).show();
+                    updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+                } else if (originalExHandler != null){
+                    originalExHandler.uncaughtException(t, e);
+                }
+            }
+        });
         this.isScanning = false;
         this.acceptableIds = null;
     }
@@ -186,7 +215,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                         attributes.put("sdk", "empalink-2.1.aar");
                         attributes.put("macAddress", bluetoothDevice.getAddress());
                         attributes.put("name", deviceName);
-                        getService().registerDevice(deviceName, attributes);
+                        getService().registerDevice(sourceId, deviceName, attributes);
                     } catch (ConnectionNotAllowedException e) {
                         // This should happen only if you try to connect when allowed == false.
                         getService().deviceFailedToConnect(deviceName);
@@ -209,6 +238,12 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     @Override
     protected void registerDeviceAtReady() {
         // do not register at ready, register later
+    }
+
+    @Override
+    public void didRegister(AppSource source) {
+        super.didRegister(source);
+        getState().getId().setSourceId(source.getSourceId());
     }
 
     private synchronized Handler getHandler() {
@@ -265,6 +300,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
             }
         });
         this.mHandlerThread.quitSafely();
+        mainThread.setUncaughtExceptionHandler(originalExHandler);
     }
 
     @Override

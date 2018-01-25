@@ -92,15 +92,19 @@ repositories {
     jcenter()
     google()
     maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
+    maven { url 'https://jitpack.io' }
     flatDir { dirs 'libs' }
 }
 
 dependencies {
-    api 'org.radarcns:radar-commons-android:0.6'
-    implementation 'org.radarcns:radar-schemas-commons:0.2.3'
+    //api 'org.radarcns:radar-commons-android:0.6'
+    //implementation 'org.radarcns:radar-schemas-commons:0.2.3'
+    api project(':commons-android')
 
     implementation 'com.empatica:empalink:2.1@aar'
     runtimeOnly 'com.squareup.okhttp:okhttp:2.5.0'
+
+    api 'com.android.support:support-v4:27.0.2'
 
     testImplementation 'junit:junit:4.12'
     testRuntimeOnly 'org.slf4j:slf4j-simple:1.7.25'
