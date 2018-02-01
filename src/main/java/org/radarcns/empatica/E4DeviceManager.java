@@ -52,6 +52,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 /** Manages scanning for an Empatica E4 wearable and connecting to it */
@@ -82,6 +86,12 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private EmpaDeviceManager deviceManager;
     private boolean isScanning;
     private Pattern[] acceptableIds;
+
+    // BLE scan timeout
+    private ScheduledFuture<?> scanTimeoutFuture;
+    private final ScheduledExecutorService executor;
+    private static final long ANDROID_N_MAX_SCAN_DURATION_MS = 30 * 60 * 1000L; // 30 minutes
+    private static final long SCAN_TIMEOUT = ANDROID_N_MAX_SCAN_DURATION_MS / 2;
 
     public E4DeviceManager(E4Service e4Service, String apiKey) {
         super(e4Service);
@@ -114,6 +124,8 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         });
         this.isScanning = false;
         this.acceptableIds = null;
+
+        this.executor = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Override
@@ -136,6 +148,38 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                 logger.info("Authenticated EmpaDeviceManager");
             }
         });
+
+        // Restart scanning after a fixed timeout, to prevent BLE from stopping scanning after 30mins (on Android N)
+        // https://github.com/AltBeacon/android-beacon-library/pull/529
+        if (scanTimeoutFuture != null) {
+            scanTimeoutFuture.cancel(false);
+        }
+        scanTimeoutFuture = executor.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (deviceManager != null && isScanning) {
+                    // stop scanning
+                    logger.info("Stopping scanning (BLE timeout)");
+                    try {
+                        deviceManager.stopScanning();
+                        logger.info("Stopped scanning (BLE timeout)");
+                        isScanning = false;
+                    } catch (NullPointerException ex) {
+                        logger.warn("Empatica internally already stopped scanning");
+                    }
+
+                    // start scanning again
+                    logger.info("Starting scanning (BLE timeout)");
+                    try {
+                        deviceManager.startScanning();
+                        logger.info("Started scanning (BLE timeout)");
+                        isScanning = true;
+                    } catch (NullPointerException ex) {
+                        logger.error("Empatica internally did not initialize");
+                    }
+                }
+            }
+        }, SCAN_TIMEOUT, SCAN_TIMEOUT, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -259,6 +303,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     public void close() {
         logger.info("Closing device {}", getName());
         Handler localHandler;
+        executor.shutdown();
         synchronized (this) {
             if (mHandler == null) {
                 throw new IllegalStateException("Already closed");
