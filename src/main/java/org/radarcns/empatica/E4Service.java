@@ -24,7 +24,7 @@ import org.radarcns.android.device.DeviceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.radarcns.android.RadarConfiguration.EMPATICA_API_KEY;
+import static org.radarcns.empatica.E4ServiceProvider.EMPATICA_API_KEY;
 
 /**
  * A service that manages a E4DeviceManager and a TableDataHandler to send store the data of an

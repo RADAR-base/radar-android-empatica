@@ -31,6 +31,7 @@ import java.util.Map;
 /**
  * The status on a single point in time of an Empatica E4 device.
  */
+@SuppressWarnings("WeakerAccess")
 public class E4DeviceStatus extends BaseDeviceState {
     private float[] acceleration = {Float.NaN, Float.NaN, Float.NaN};
     private float batteryLevel = Float.NaN;

@@ -50,6 +50,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /** Manages scanning for an Empatica E4 wearable and connecting to it */
+@SuppressWarnings("WeakerAccess")
 class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> implements EmpaDataDelegate, EmpaStatusDelegate {
     private static final Logger logger = LoggerFactory.getLogger(E4DeviceManager.class);
 
@@ -94,18 +95,15 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         synchronized (this) {
             this.mHandler = new Handler(this.mHandlerThread.getLooper());
         }
-        post(new Runnable() {
-            @Override
-            public void run() {
-                logger.info("Creating EmpaDeviceManager");
-                // Create a new EmpaDeviceManager. E4DeviceManager is both its data and status delegate.
-                deviceManager = new EmpaDeviceManager(getService(), E4DeviceManager.this, E4DeviceManager.this);
-                // Initialize the Device Manager using your API key. You need to have Internet access at this point.
-                logger.info("Authenticating EmpaDeviceManager");
-                deviceManager.authenticateWithAPIKey(apiKey);
-                E4DeviceManager.this.acceptableIds = Strings.containsPatterns(acceptableIds);
-                logger.info("Authenticated EmpaDeviceManager");
-            }
+        post(() -> {
+            logger.info("Creating EmpaDeviceManager");
+            // Create a new EmpaDeviceManager. E4DeviceManager is both its data and status delegate.
+            deviceManager = new EmpaDeviceManager(getService(), E4DeviceManager.this, E4DeviceManager.this);
+            // Initialize the Device Manager using your API key. You need to have Internet access at this point.
+            logger.info("Authenticating EmpaDeviceManager");
+            deviceManager.authenticateWithAPIKey(apiKey);
+            E4DeviceManager.this.acceptableIds = Strings.containsPatterns(acceptableIds);
+            logger.info("Authenticated EmpaDeviceManager");
         });
     }
 
@@ -114,25 +112,22 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         logger.info("Updated E4 status to {}", empaStatus);
         switch (empaStatus) {
             case READY:
-                post(new Runnable() {
-                    @Override
-                    public void run() {
-                        // somehow, the status is set to disconnected when EmpaDeviceManager is
-                        // being created
-                        if (deviceManager == null) {
-                            return;
-                        }
-                        // The device manager is ready for use
-                        // Start scanning
-                        try {
-                            deviceManager.startScanning();
-                            logger.info("Started scanning");
-                            isScanning = true;
-                            updateStatus(DeviceStatusListener.Status.READY);
-                        } catch (NullPointerException ex) {
-                            logger.error("Empatica internally did not initialize");
-                            updateStatus(DeviceStatusListener.Status.DISCONNECTED);
-                        }
+                post(() -> {
+                    // somehow, the status is set to disconnected when EmpaDeviceManager is
+                    // being created
+                    if (deviceManager == null) {
+                        return;
+                    }
+                    // The device manager is ready for use
+                    // Start scanning
+                    try {
+                        deviceManager.startScanning();
+                        logger.info("Started scanning");
+                        isScanning = true;
+                        updateStatus(DeviceStatusListener.Status.READY);
+                    } catch (NullPointerException ex) {
+                        logger.error("Empatica internally did not initialize");
+                        updateStatus(DeviceStatusListener.Status.DISCONNECTED);
                     }
                 });
                 break;
@@ -174,23 +169,20 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                 return;
             }
             setName(deviceName);
-            post(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        // Connect to the device
-                        updateStatus(DeviceStatusListener.Status.CONNECTING);
-                        deviceManager.connectDevice(bluetoothDevice);
+            post(() -> {
+                try {
+                    // Connect to the device
+                    updateStatus(DeviceStatusListener.Status.CONNECTING);
+                    deviceManager.connectDevice(bluetoothDevice);
 
-                        Map<String, String> attributes = new ArrayMap<>(3);
-                        attributes.put("sdk", "empalink-2.1.aar");
-                        attributes.put("macAddress", bluetoothDevice.getAddress());
-                        attributes.put("name", deviceName);
-                        getService().registerDevice(deviceName, attributes);
-                    } catch (ConnectionNotAllowedException e) {
-                        // This should happen only if you try to connect when allowed == false.
-                        getService().deviceFailedToConnect(deviceName);
-                    }
+                    Map<String, String> attributes = new ArrayMap<>(3);
+                    attributes.put("sdk", "empalink-2.1.aar");
+                    attributes.put("macAddress", bluetoothDevice.getAddress());
+                    attributes.put("name", deviceName);
+                    getService().registerDevice(deviceName, attributes);
+                } catch (ConnectionNotAllowedException e) {
+                    // This should happen only if you try to connect when allowed == false.
+                    getService().deviceFailedToConnect(deviceName);
                 }
             });
         } else {
@@ -231,38 +223,35 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
             localHandler = mHandler;
             mHandler = null;
         }
-        localHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                String name = getName();
-                logger.info("Initiated device {} stop-sequence", name);
-                if (isScanning) {
-                    try {
-                        deviceManager.stopScanning();
-                    } catch (NullPointerException ex) {
-                        logger.warn("Empatica internally already stopped scanning");
-                    }
-                    isScanning = false;
-                }
-                if (name != null) {
-                    try {
-                        deviceManager.disconnect();
-                    } catch (NullPointerException ex) {
-                        logger.warn("Empatica internally already disconnected");
-                    }
-                }
-                logger.info("Cleaning up device manager");
+        localHandler.post(() -> {
+            String name = getName();
+            logger.info("Initiated device {} stop-sequence", name);
+            if (isScanning) {
                 try {
-                    deviceManager.cleanUp();
+                    deviceManager.stopScanning();
                 } catch (NullPointerException ex) {
-                    logger.warn("Empatica internally already cleaned up");
+                    logger.warn("Empatica internally already stopped scanning");
                 }
-                logger.info("Cleaned up device manager");
-                if (getState().getStatus() != DeviceStatusListener.Status.DISCONNECTED) {
-                    updateStatus(DeviceStatusListener.Status.DISCONNECTED);
-                }
-                logger.info("Finished device {} stop-sequence", name);
+                isScanning = false;
             }
+            if (name != null) {
+                try {
+                    deviceManager.disconnect();
+                } catch (NullPointerException ex) {
+                    logger.warn("Empatica internally already disconnected");
+                }
+            }
+            logger.info("Cleaning up device manager");
+            try {
+                deviceManager.cleanUp();
+            } catch (NullPointerException ex) {
+                logger.warn("Empatica internally already cleaned up");
+            }
+            logger.info("Cleaned up device manager");
+            if (getState().getStatus() != DeviceStatusListener.Status.DISCONNECTED) {
+                updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+            }
+            logger.info("Finished device {} stop-sequence", name);
         });
         this.mHandlerThread.quitSafely();
     }
@@ -297,7 +286,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     public void didReceiveBatteryLevel(float battery, double timestamp) {
         getState().setBatteryLevel(battery);
         EmpaticaE4BatteryLevel value = new EmpaticaE4BatteryLevel(timestamp, System.currentTimeMillis() / 1000d, battery);
-        trySend(batteryLevelTopic, 0L, value);
+        send(batteryLevelTopic, value);
     }
 
     @Override

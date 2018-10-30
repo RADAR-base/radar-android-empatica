@@ -16,6 +16,7 @@
 
 package org.radarcns.empatica;
 
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 
@@ -46,11 +47,6 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
         return true;
     }
 
-    @SuppressWarnings("unchecked")
-    public void showDetailView() {
-        new E4HeartbeatToast(getConnection()).execute();
-    }
-
     @Override
     protected void configure(Bundle bundle) {
         super.configure(bundle);
@@ -67,9 +63,16 @@ public class E4ServiceProvider extends DeviceServiceProvider<E4DeviceStatus> {
         return true;
     }
 
+    @NonNull
     @Override
     public List<String> needsPermissions() {
         return Arrays.asList(ACCESS_COARSE_LOCATION, BLUETOOTH, BLUETOOTH_ADMIN);
+    }
+
+    @NonNull
+    @Override
+    public List<String> needsFeatures() {
+        return Arrays.asList(PackageManager.FEATURE_BLUETOOTH, PackageManager.FEATURE_BLUETOOTH_LE);
     }
 
     @NonNull
