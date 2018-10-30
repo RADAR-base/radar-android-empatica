@@ -23,6 +23,9 @@ import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
 import android.util.ArrayMap;
+import android.widget.Toast;
+
+import com.empatica.empalink.ConfigurationProfileException;
 import com.empatica.empalink.ConnectionNotAllowedException;
 import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.config.EmpaSensorStatus;
@@ -30,8 +33,11 @@ import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
+
+import org.radarcns.android.auth.AppSource;
 import org.radarcns.android.device.AbstractDeviceManager;
 import org.radarcns.android.device.DeviceStatusListener;
+import org.radarcns.android.util.Boast;
 import org.radarcns.kafka.ObservationKey;
 import org.radarcns.passive.empatica.EmpaticaE4Acceleration;
 import org.radarcns.passive.empatica.EmpaticaE4BatteryLevel;
@@ -55,6 +61,8 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private static final Logger logger = LoggerFactory.getLogger(E4DeviceManager.class);
 
     private final String apiKey;
+    private final Thread.UncaughtExceptionHandler originalExHandler;
+    private final Thread mainThread;
     private Handler mHandler;
     private final HandlerThread mHandlerThread;
 
@@ -77,6 +85,10 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private boolean isScanning;
     private Pattern[] acceptableIds;
 
+    // BLE scan timeout
+    private static final long ANDROID_N_MAX_SCAN_DURATION_MS = 30 * 60 * 1000L; // 30 minutes
+    private static final long SCAN_TIMEOUT = ANDROID_N_MAX_SCAN_DURATION_MS / 2;
+
     public E4DeviceManager(E4Service e4Service, String apiKey) {
         super(e4Service);
 
@@ -84,6 +96,22 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         deviceManager = null;
         // Initialize the Device Manager using your API key. You need to have Internet access at this point.
         this.mHandlerThread = new HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_MORE_FAVORABLE);
+        this.mHandlerThread.setUncaughtExceptionHandler((t, e) -> {
+            logger.error("Empatica crashed. Disconnecting", e);
+            Boast.makeText(getService(), R.string.empatica_failed, Toast.LENGTH_LONG).show();
+            updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+        });
+        mainThread = Thread.currentThread();
+        originalExHandler = mainThread.getUncaughtExceptionHandler();
+        mainThread.setUncaughtExceptionHandler((t, e) -> {
+            if (e instanceof ConfigurationProfileException) {
+                logger.error("Empatica crashed because there is no internet connection. Disconnecting", e);
+                Boast.makeText(getService(), R.string.empatica_failed, Toast.LENGTH_LONG).show();
+                updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+            } else if (originalExHandler != null){
+                originalExHandler.uncaughtException(t, e);
+            }
+        });
         this.isScanning = false;
         this.acceptableIds = null;
     }
@@ -105,6 +133,41 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
             E4DeviceManager.this.acceptableIds = Strings.containsPatterns(acceptableIds);
             logger.info("Authenticated EmpaDeviceManager");
         });
+
+        // Restart scanning after a fixed timeout, to prevent BLE from stopping scanning after 30mins (on Android N)
+        // https://github.com/AltBeacon/android-beacon-library/pull/529
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                if (deviceManager != null && isScanning) {
+                    // stop scanning
+                    logger.info("Stopping scanning (BLE timeout)");
+                    try {
+                        deviceManager.stopScanning();
+                        logger.info("Stopped scanning (BLE timeout)");
+                        isScanning = false;
+                    } catch (NullPointerException ex) {
+                        logger.warn("Empatica internally already stopped scanning");
+                    }
+
+                    // start scanning again
+                    logger.info("Starting scanning (BLE timeout)");
+                    try {
+                        deviceManager.startScanning();
+                        logger.info("Started scanning (BLE timeout)");
+                        isScanning = true;
+                    } catch (NullPointerException ex) {
+                        logger.error("Empatica internally did not initialize");
+                    }
+                }
+
+                Handler localHandler = getHandler();
+                if (localHandler != null) {
+                    localHandler.postDelayed(this, SCAN_TIMEOUT);
+                }
+            }
+        }, SCAN_TIMEOUT);
     }
 
     @Override
@@ -203,6 +266,12 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         // do not register at ready, register later
     }
 
+    @Override
+    public void didRegister(AppSource source) {
+        super.didRegister(source);
+        getState().getId().setSourceId(source.getSourceId());
+    }
+
     private synchronized Handler getHandler() {
         return this.mHandler;
     }
@@ -254,6 +323,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
             logger.info("Finished device {} stop-sequence", name);
         });
         this.mHandlerThread.quitSafely();
+        mainThread.setUncaughtExceptionHandler(originalExHandler);
     }
 
     @Override
