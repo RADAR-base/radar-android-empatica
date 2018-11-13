@@ -31,6 +31,7 @@ import com.empatica.empalink.EmpaDeviceManager;
 import com.empatica.empalink.EmpaticaDevice;
 import com.empatica.empalink.config.EmpaSensorStatus;
 import com.empatica.empalink.config.EmpaSensorType;
+import com.empatica.empalink.config.EmpaSessionEvent;
 import com.empatica.empalink.config.EmpaStatus;
 import com.empatica.empalink.delegate.EmpaDataDelegate;
 import com.empatica.empalink.delegate.EmpaStatusDelegate;
@@ -133,7 +134,9 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
         post(() -> {
             logger.info("Creating EmpaDeviceManager");
             // Create a new EmpaDeviceManager. E4DeviceManager is both its data and status delegate.
-            deviceManager = new EmpaDeviceManager(getService(), E4DeviceManager.this, E4DeviceManager.this);
+            deviceManager = new EmpaDeviceManager(getService(), E4DeviceManager.this, E4DeviceManager.this, (EmpaSessionEvent event, float progress) -> {
+                logger.info("Empatica session event {} with progress {}", event, progress);
+            });
             // Initialize the Device Manager using your API key. You need to have Internet access at this point.
             logger.info("Authenticating EmpaDeviceManager");
             deviceManager.authenticateWithAPIKey(apiKey);
