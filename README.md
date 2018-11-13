@@ -1,6 +1,6 @@
 # Empatica plugin for RADAR-pRMT
 
-Application to be run on an Android 4.4 (or later) device with Bluetooth Low Energy (Bluetooth 4.0 or later), to interact with the Empatica.
+Application to be run on an Android 5.0 (or later) device with Bluetooth Low Energy (Bluetooth 4.0 or later), to interact with the Empatica.
 
 The plugin application only runs on an ARM architecture and because of its Bluetooth Low Energy requirement, it also requires coarse location permissions. This plugin does not collect location information.
 
@@ -8,7 +8,7 @@ The plugin application only runs on an ARM architecture and because of its Bluet
 
 First, request an Empatica Connect developer account from [Empatica's Developer Area][1]. Download the Empatica Android SDK there.
 
-- Download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.1.aar` from the Empatica Android SDK package to the `libs` directory of your application. Then the project can be edited with Android Studio. Add the following to your `build.gradle`:
+- Download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.2.aar` from the Empatica Android SDK package to the `libs` directory of your application. Then the project can be edited with Android Studio. Add the following to your `build.gradle`:
         
      ```gradle
      repositories {
@@ -31,6 +31,8 @@ Request an Empatica API key for your Empatica Connect account. Set your Empatica
 
 ## Contributing
 
-To build this repository, download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.1.aar` from the Empatica Android SDK package to the `libs` directory.
+To build this repository, download the Empatica Android SDK from the [Empatica Developer Area][1]. Copy the `empalink-2.2.aar` from the Empatica Android SDK package to the `libs` directory.
 
 Code should be formatted using the [Google Java Code Style Guide](https://google.github.io/styleguide/javaguide.html), except using 4 spaces as indentation. Make a pull request once the code is working.
+
+[1](https://www.empatica.com/connect/developer.php)
