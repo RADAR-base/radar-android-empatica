@@ -19,7 +19,6 @@ package org.radarcns.empatica;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.empatica.empalink.config.EmpaSensorStatus;
 import com.empatica.empalink.config.EmpaSensorType;
 
 import org.radarcns.android.device.BaseDeviceState;
@@ -39,7 +38,7 @@ public class E4DeviceStatus extends BaseDeviceState {
     private float electroDermalActivity = Float.NaN;
     private float interBeatInterval = Float.NaN;
     private float temperature = Float.NaN;
-    private final Map<EmpaSensorType, EmpaSensorStatus> sensorStatus = new EnumMap<>(EmpaSensorType.class);
+    private final Map<EmpaSensorType, String> sensorStatus = new EnumMap<>(EmpaSensorType.class);
 
     public static final Parcelable.Creator<E4DeviceStatus> CREATOR = new DeviceStateCreator<>(E4DeviceStatus.class);
 
@@ -55,9 +54,9 @@ public class E4DeviceStatus extends BaseDeviceState {
         dest.writeFloat(this.interBeatInterval);
         dest.writeFloat(this.temperature);
         dest.writeInt(sensorStatus.size());
-        for (Map.Entry<EmpaSensorType, EmpaSensorStatus> sensor : sensorStatus.entrySet()) {
+        for (Map.Entry<EmpaSensorType, String> sensor : sensorStatus.entrySet()) {
             dest.writeInt(sensor.getKey().ordinal());
-            dest.writeInt(sensor.getValue().ordinal());
+            dest.writeString(sensor.getValue());
         }
     }
 
@@ -73,7 +72,7 @@ public class E4DeviceStatus extends BaseDeviceState {
         temperature = in.readFloat();
         int numSensors = in.readInt();
         for (int i = 0; i < numSensors; i++) {
-            sensorStatus.put(EmpaSensorType.values()[in.readInt()], EmpaSensorStatus.values()[in.readInt()]);
+            sensorStatus.put(EmpaSensorType.values()[in.readInt()], in.readString());
         }
     }
 
@@ -150,11 +149,11 @@ public class E4DeviceStatus extends BaseDeviceState {
         this.temperature = temperature;
     }
 
-    public Map<EmpaSensorType, EmpaSensorStatus> getSensorStatus() {
+    public Map<EmpaSensorType, String> getSensorStatus() {
         return sensorStatus;
     }
 
-    public synchronized void setSensorStatus(EmpaSensorType type, EmpaSensorStatus status) {
+    public synchronized void setSensorStatus(EmpaSensorType type, String status) {
         sensorStatus.put(type, status);
     }
 }

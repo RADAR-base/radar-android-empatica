@@ -17,17 +17,18 @@
 package org.radarcns.empatica;
 
 import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.support.annotation.NonNull;
 import android.util.ArrayMap;
+import android.util.SparseArray;
 import android.widget.Toast;
 
 import com.empatica.empalink.ConfigurationProfileException;
 import com.empatica.empalink.ConnectionNotAllowedException;
 import com.empatica.empalink.EmpaDeviceManager;
+import com.empatica.empalink.EmpaticaDevice;
 import com.empatica.empalink.config.EmpaSensorStatus;
 import com.empatica.empalink.config.EmpaSensorType;
 import com.empatica.empalink.config.EmpaStatus;
@@ -84,6 +85,12 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     private EmpaDeviceManager deviceManager;
     private boolean isScanning;
     private Pattern[] acceptableIds;
+    private static final SparseArray<String> STATUS_NAMES = new SparseArray<>();
+    static {
+        STATUS_NAMES.put(EmpaSensorStatus.ON_WRIST, "ON_WRIST");
+        STATUS_NAMES.put(EmpaSensorStatus.NOT_ON_WRIST, "NOT_ON_WRIST");
+        STATUS_NAMES.put(EmpaSensorStatus.DEAD, "DEAD");
+    }
 
     // BLE scan timeout
     private static final long ANDROID_N_MAX_SCAN_DURATION_MS = 30 * 60 * 1000L; // 30 minutes
@@ -217,13 +224,18 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     }
 
     @Override
-    public void didDiscoverDevice(final BluetoothDevice bluetoothDevice, final String deviceName, int i, boolean allowed) {
+    public void didEstablishConnection() {
+        logger.info("Established connection with E4");
+    }
+
+    @Override
+    public void didDiscoverDevice(EmpaticaDevice empaDevice, String deviceName, int rssi, boolean allowed) {
         // Check if the discovered device can be used with your API key. If allowed is always false,
         // the device is not linked with your API key. Please check your developer area at
         // https://www.empatica.com/connect/developer.php
-        logger.info("Bluetooth address: {}", bluetoothDevice.getAddress());
+        logger.info("Bluetooth address: {}", empaDevice.device.getAddress());
         if (allowed) {
-            final String sourceId = bluetoothDevice.getAddress();
+            final String sourceId = empaDevice.device.getAddress();
             if (acceptableIds.length > 0
                     && !Strings.findAny(acceptableIds, deviceName)
                     && !Strings.findAny(acceptableIds, sourceId)) {
@@ -236,11 +248,13 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                 try {
                     // Connect to the device
                     updateStatus(DeviceStatusListener.Status.CONNECTING);
-                    deviceManager.connectDevice(bluetoothDevice);
+                    deviceManager.connectDevice(empaDevice);
 
                     Map<String, String> attributes = new ArrayMap<>(3);
-                    attributes.put("sdk", "empalink-2.1.aar");
-                    attributes.put("macAddress", bluetoothDevice.getAddress());
+                    attributes.put("sdk", "empalink-2.2.aar");
+                    attributes.put("macAddress", empaDevice.device.getAddress());
+                    attributes.put("hardwareId", empaDevice.hardwareId);
+                    attributes.put("serialNumber", empaDevice.serialNumber);
                     attributes.put("name", deviceName);
                     getService().registerDevice(deviceName, attributes);
                 } catch (ConnectionNotAllowedException e) {
@@ -249,7 +263,7 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
                 }
             });
         } else {
-            logger.warn("Device {} with address {} is not an allowed device.", deviceName, bluetoothDevice.getAddress());
+            logger.warn("Device {} with address {} is not an allowed device.", deviceName, empaDevice.device.getAddress());
             getService().deviceFailedToConnect(deviceName);
         }
     }
@@ -335,6 +349,13 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     }
 
     @Override
+    public void didUpdateOnWristStatus(int status) {
+        double now = System.currentTimeMillis() / 1000d;
+        EmpaticaE4SensorStatus value = new EmpaticaE4SensorStatus(now, now, "e4", STATUS_NAMES.get(status, "UNKNOWN"));
+        send(sensorStatusTopic, value);
+    }
+
+    @Override
     public void didReceiveAcceleration(int x, int y, int z, double timestamp) {
         getState().setAcceleration(x / 64f, y / 64f, z / 64f);
         float[] latestAcceleration = getState().getAcceleration();
@@ -360,6 +381,11 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     }
 
     @Override
+    public void didReceiveTag(double timestamp) {
+
+    }
+
+    @Override
     public void didReceiveGSR(float gsr, double timestamp) {
         getState().setElectroDermalActivity(gsr);
         EmpaticaE4ElectroDermalActivity value = new EmpaticaE4ElectroDermalActivity(timestamp, System.currentTimeMillis() / 1000d, gsr);
@@ -381,10 +407,11 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
     }
 
     @Override
-    public void didUpdateSensorStatus(EmpaSensorStatus empaSensorStatus, EmpaSensorType empaSensorType) {
-        getState().setSensorStatus(empaSensorType, empaSensorStatus);
+    public void didUpdateSensorStatus(int status, EmpaSensorType type) {
+        String statusString = STATUS_NAMES.get(status, "UNKNOWN");
+        getState().setSensorStatus(type, statusString);
         double now = System.currentTimeMillis() / 1000d;
-        EmpaticaE4SensorStatus value = new EmpaticaE4SensorStatus(now, now, empaSensorType.name(), empaSensorStatus.name());
+        EmpaticaE4SensorStatus value = new EmpaticaE4SensorStatus(now, now, type.name(), statusString);
         send(sensorStatusTopic, value);
     }
 }
