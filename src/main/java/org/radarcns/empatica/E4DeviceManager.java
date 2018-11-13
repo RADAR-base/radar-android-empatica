@@ -136,6 +136,9 @@ class E4DeviceManager extends AbstractDeviceManager<E4Service, E4DeviceStatus> i
             // Create a new EmpaDeviceManager. E4DeviceManager is both its data and status delegate.
             deviceManager = new EmpaDeviceManager(getService(), E4DeviceManager.this, E4DeviceManager.this, (EmpaSessionEvent event, float progress) -> {
                 logger.info("Empatica session event {} with progress {}", event, progress);
+                if (event == EmpaSessionEvent.UNAUTHORIZED_USER_ERROR) {
+                    updateStatus(DeviceStatusListener.Status.DISCONNECTED);
+                }
             });
             // Initialize the Device Manager using your API key. You need to have Internet access at this point.
             logger.info("Authenticating EmpaDeviceManager");
