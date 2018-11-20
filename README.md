@@ -17,7 +17,7 @@ First, request an Empatica Connect developer account from [Empatica's Developer 
      }
      
      dependencies {
-         compile 'org.radarcns:radar-android-empatica:0.1.1'
+         compile 'org.radarcns:radar-android-empatica:0.2.0'
      }
      ```
     
