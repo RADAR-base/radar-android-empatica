@@ -109,7 +109,7 @@ repositories {
 
 dependencies {
     api 'org.radarcns:radar-commons-android:0.8.4'
-    implementation 'org.radarcns:radar-schemas-commons:0.4.1'
+    implementation 'org.radarcns:radar-schemas-commons:0.4.3'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
     implementation 'com.empatica:empalink:2.2@aar'
