@@ -17,8 +17,6 @@
 package org.radarcns.empatica
 
 import android.bluetooth.BluetoothAdapter
-import android.os.Handler
-import android.util.ArrayMap
 import android.util.SparseArray
 import com.empatica.empalink.ConnectionNotAllowedException
 import com.empatica.empalink.EmpaDeviceManager
@@ -30,72 +28,61 @@ import com.empatica.empalink.config.EmpaStatus
 import com.empatica.empalink.delegate.EmpaDataDelegate
 import com.empatica.empalink.delegate.EmpaSessionManagerDelegate
 import com.empatica.empalink.delegate.EmpaStatusDelegate
-import org.radarcns.android.device.AbstractDeviceManager
-import org.radarcns.android.device.DeviceStatusListener
+import org.radarbase.android.device.AbstractDeviceManager
+import org.radarbase.android.device.DeviceStatusListener
+import org.radarbase.android.util.SafeHandler
 import org.radarcns.passive.empatica.*
-import org.radarcns.util.Strings
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.regex.Pattern
 
 /** Manages scanning for an Empatica E4 wearable and connecting to it  */
-class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDeviceManager, private val handler: Handler, private val apiKey: String) : AbstractDeviceManager<E4Service, E4DeviceStatus>(e4Service), EmpaDataDelegate, EmpaStatusDelegate, EmpaSessionManagerDelegate {
-    private val accelerationTopic = createTopic("android_empatica_e4_acceleration", EmpaticaE4Acceleration::class.java)
-    private val batteryLevelTopic = createTopic("android_empatica_e4_battery_level", EmpaticaE4BatteryLevel::class.java)
-    private val bloodVolumePulseTopic = createTopic("android_empatica_e4_blood_volume_pulse", EmpaticaE4BloodVolumePulse::class.java)
-    private val edaTopic = createTopic("android_empatica_e4_electrodermal_activity", EmpaticaE4ElectroDermalActivity::class.java)
-    private val interBeatIntervalTopic = createTopic("android_empatica_e4_inter_beat_interval", EmpaticaE4InterBeatInterval::class.java)
-    private val temperatureTopic = createTopic("android_empatica_e4_temperature", EmpaticaE4Temperature::class.java)
-    private val sensorStatusTopic = createTopic("android_empatica_e4_sensor_status", EmpaticaE4SensorStatus::class.java)
+class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDeviceManager, private val handler: SafeHandler) : AbstractDeviceManager<E4Service, E4DeviceStatus>(e4Service), EmpaDataDelegate, EmpaStatusDelegate, EmpaSessionManagerDelegate {
+    private val accelerationTopic = createCache("android_empatica_e4_acceleration", EmpaticaE4Acceleration::class.java)
+    private val batteryLevelTopic = createCache("android_empatica_e4_battery_level", EmpaticaE4BatteryLevel::class.java)
+    private val bloodVolumePulseTopic = createCache("android_empatica_e4_blood_volume_pulse", EmpaticaE4BloodVolumePulse::class.java)
+    private val edaTopic = createCache("android_empatica_e4_electrodermal_activity", EmpaticaE4ElectroDermalActivity::class.java)
+    private val interBeatIntervalTopic = createCache("android_empatica_e4_inter_beat_interval", EmpaticaE4InterBeatInterval::class.java)
+    private val temperatureTopic = createCache("android_empatica_e4_temperature", EmpaticaE4Temperature::class.java)
+    private val sensorStatusTopic = createCache("android_empatica_e4_sensor_status", EmpaticaE4SensorStatus::class.java)
 
     private val isScanning = AtomicBoolean(false)
     private var hasBeenConnecting = false
-    private var acceptableIds: Array<Pattern>? = null
-
-    init {
-        logger.info("Created new E4DeviceManager {}", System.identityHashCode(this))
-        // Initialize the Device Manager using your API key. You need to have Internet access at this point.
-        this.acceptableIds = null
-    }
+    lateinit var apiKey: String
+    override var attributes: Map<String, String> = emptyMap()
 
     override fun start(acceptableIds: Set<String>) {
         logger.info("Starting scanning")
-        handler.post {
+        handler.execute {
             // Create a new EmpaDeviceManager. E4DeviceManager is both its data and status delegate.
             // Initialize the Device Manager using your API key. You need to have Internet access at this point.
             logger.info("Authenticating EmpaDeviceManager")
             deviceManager.authenticateWithAPIKey(apiKey)
-            this.acceptableIds = Strings.containsPatterns(acceptableIds)
             logger.info("Authenticated EmpaDeviceManager")
         }
 
         // Restart scanning after a fixed timeout, to prevent BLE from stopping scanning after 30mins (on Android N)
         // https://github.com/AltBeacon/android-beacon-library/pull/529
-        handler.postDelayed(object : Runnable {
-            override fun run() {
-                if (isScanning.get()) {
-                    // start scanning again
-                    try {
-                        logger.info("Stopping scanning (BLE timeout)")
-                        deviceManager.stopScanning()
-                        logger.info("Starting scanning (BLE timeout)")
-                        deviceManager.startScanning()
-                        logger.info("Started scanning (BLE timeout)")
-                    } catch (ex: RuntimeException) {
-                        logger.error("Empatica internally did not initialize")
-                    }
+        handler.repeat(SCAN_TIMEOUT) {
+            if (isScanning.get()) {
+                // start scanning again
+                try {
+                    logger.info("Stopping scanning (BLE timeout)")
+                    deviceManager.stopScanning()
+                    logger.info("Starting scanning (BLE timeout)")
+                    deviceManager.startScanning()
+                    logger.info("Started scanning (BLE timeout)")
+                } catch (ex: RuntimeException) {
+                    logger.error("Empatica internally did not initialize")
                 }
-
-                handler.postDelayed(this, SCAN_TIMEOUT)
             }
-        }, SCAN_TIMEOUT)
+        }
     }
 
     override fun didUpdateStatus(empaStatus: EmpaStatus) {
         logger.info("{}: Updated E4 status to {}", hashCode(), empaStatus)
         when (empaStatus) {
-            EmpaStatus.READY -> handler.post {
+            EmpaStatus.READY -> handler.execute {
                 // The device manager is ready for use
                 // Start scanning
                 try {
@@ -134,30 +121,26 @@ class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDevic
         val address = empaDevice.device.address
         logger.info("{}: Bluetooth address: {}", System.identityHashCode(this), address)
         if (allowed) {
-            if (acceptableIds!!.isNotEmpty()
-                    && !Strings.findAny(acceptableIds!!, deviceName)
-                    && !Strings.findAny(acceptableIds!!, address)) {
-                logger.info("Device {} with ID {} is not listed in acceptable device IDs", deviceName, address)
-                service.deviceFailedToConnect(deviceName)
-                return
-            }
-            stopScanning()
-            logger.info("Will connect device {}", deviceName)
-            handler.post {
-                try {
-                    // Connect to the device
-                    updateStatus(DeviceStatusListener.Status.CONNECTING)
-                    deviceManager.connectDevice(empaDevice)
-
-                    val attributes = ArrayMap<String, String>(5)
-                    attributes["sdk"] = "empalink-2.2.aar"
-                    attributes["macAddress"] = address
-                    attributes["hardwareId"] = empaDevice.hardwareId
-                    attributes["serialNumber"] = empaDevice.serialNumber
-                    attributes["name"] = deviceName
-                    service.registerDevice(deviceName, attributes)
-                } catch (e: ConnectionNotAllowedException) {
-                    // This should happen only if you try to connect when allowed == false.
+            handler.execute {
+                if (register(
+                        name = deviceName,
+                        physicalId = empaDevice.hardwareId,
+                        attributes = mapOf(
+                                Pair("sdk", "empalink-2.2.aar"),
+                                Pair("macAddress", address),
+                                Pair("serialNumber", empaDevice.serialNumber)))) {
+                    stopScanning()
+                    logger.info("Will connect device {}", deviceName)
+                    try {
+                        // Connect to the device
+                        updateStatus(DeviceStatusListener.Status.CONNECTING)
+                        deviceManager.connectDevice(empaDevice)
+                    } catch (e: ConnectionNotAllowedException) {
+                        // This should happen only if you try to connect when allowed == false.
+                        service.deviceFailedToConnect(deviceName)
+                    }
+                } else {
+                    logger.info("Device {} with ID {} is not listed in acceptable device IDs", deviceName, address)
                     service.deviceFailedToConnect(deviceName)
                 }
             }
@@ -165,10 +148,6 @@ class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDevic
             logger.warn("Device {} with address {} is not an allowed device.", deviceName, empaDevice.device.address)
             service.deviceFailedToConnect(deviceName)
         }
-    }
-
-    override fun registerDeviceAtReady() {
-        // do not register at ready, register later
     }
 
     private fun stopScanning() {
@@ -188,7 +167,7 @@ class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDevic
             return
         }
         super.close()
-        handler.post {
+        handler.execute(true) {
             stopScanning()
             logger.info("Initiated device {} stop-sequence", name)
             if (hasBeenConnecting) {

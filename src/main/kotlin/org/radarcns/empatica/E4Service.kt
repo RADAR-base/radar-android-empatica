@@ -16,14 +16,12 @@
 
 package org.radarcns.empatica
 
-import android.os.Bundle
-import android.os.Handler
-import android.os.HandlerThread
 import android.os.Process
 import com.empatica.empalink.EmpaDeviceManager
-import org.radarcns.android.RadarConfiguration
-import org.radarcns.android.device.DeviceService
-import org.radarcns.empatica.E4ServiceProvider.Companion.EMPATICA_API_KEY
+import org.radarbase.android.RadarConfiguration
+import org.radarbase.android.device.DeviceManager
+import org.radarbase.android.device.DeviceService
+import org.radarbase.android.util.SafeHandler
 import org.slf4j.LoggerFactory
 
 /**
@@ -31,32 +29,24 @@ import org.slf4j.LoggerFactory
  * Empatica E4 and send it to a Kafka REST proxy.
  */
 class E4Service : DeviceService<E4DeviceStatus>() {
-    private lateinit var apiKey: String
-    private lateinit var mHandlerThread: HandlerThread
-    private lateinit var mHandler: Handler
-
+    private lateinit var mHandler: SafeHandler
     private lateinit var empaManager: EmpaDeviceManager
 
     override fun onCreate() {
         super.onCreate()
-        mHandlerThread = HandlerThread("E4-device-handler", Process.THREAD_PRIORITY_MORE_FAVORABLE)
-        mHandlerThread.start()
-        mHandler = Handler(mHandlerThread.looper)
+        mHandler = SafeHandler("E4-device-handler", Process.THREAD_PRIORITY_MORE_FAVORABLE)
 
         val delegate = E4Delegate(this)
         empaManager = EmpaDeviceManager(this, delegate, delegate, delegate)
     }
 
-    override fun getDeviceManager(): E4DeviceManager? = super.getDeviceManager() as? E4DeviceManager
+    override fun createDeviceManager() = E4DeviceManager(this, empaManager, mHandler)
 
-    override fun createDeviceManager() = E4DeviceManager(this, empaManager, mHandler, apiKey)
-
-    override fun getDefaultState() = E4DeviceStatus()
-
-    override fun onInvocation(bundle: Bundle) {
-        super.onInvocation(bundle)
-        apiKey = RadarConfiguration.getStringExtra(bundle, EMPATICA_API_KEY)
+    override fun configureDeviceManager(manager: DeviceManager<E4DeviceStatus>, configuration: RadarConfiguration) {
+        (manager as E4DeviceManager).apiKey = configuration.getString(EMPATICA_API_KEY)
     }
+
+    override val defaultState = E4DeviceStatus()
 
     override fun onDestroy() {
         super.onDestroy()
@@ -66,10 +56,12 @@ class E4Service : DeviceService<E4DeviceStatus>() {
         } catch (ex: RuntimeException) {
             logger.error("Failed to clean up Empatica manager", ex)
         }
-        mHandlerThread.quit()
+        mHandler.stop()
     }
 
     companion object {
         private val logger = LoggerFactory.getLogger(E4Service::class.java)
+
+        private const val EMPATICA_API_KEY = "empatica_api_key"
     }
 }

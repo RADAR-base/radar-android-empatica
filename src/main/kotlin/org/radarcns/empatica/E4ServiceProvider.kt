@@ -18,36 +18,23 @@ package org.radarcns.empatica
 
 import android.Manifest.permission.*
 import android.content.pm.PackageManager
-import android.os.Bundle
-import org.radarcns.android.device.DeviceServiceProvider
-import java.util.*
+import org.radarbase.android.device.DeviceServiceProvider
 
 class E4ServiceProvider : DeviceServiceProvider<E4DeviceStatus>() {
-    override fun getServiceClass() = E4Service::class.java
+    override val serviceClass = E4Service::class.java
 
-    override fun configure(bundle: Bundle) {
-        super.configure(bundle)
-        config.putExtras(bundle, EMPATICA_API_KEY)
-    }
+    override val permissionsNeeded = listOf(ACCESS_COARSE_LOCATION, BLUETOOTH, BLUETOOTH_ADMIN)
+    override val featuresNeeded = listOf(PackageManager.FEATURE_BLUETOOTH, PackageManager.FEATURE_BLUETOOTH_LE)
 
-    override fun needsPermissions(): List<String> {
-        return Arrays.asList(ACCESS_COARSE_LOCATION, BLUETOOTH, BLUETOOTH_ADMIN)
-    }
+    override val description
+        get() = radarService?.getString(R.string.empatica_e4_explanation)
+    override val hasDetailView = true
+    override val displayName: String
+        get() = radarService?.getString(R.string.empaticaE4DisplayName) ?: "E4"
 
-    override fun needsFeatures(): List<String> {
-        return Arrays.asList(PackageManager.FEATURE_BLUETOOTH, PackageManager.FEATURE_BLUETOOTH_LE)
-    }
+    override val isFilterable = true
 
-    override fun getDescription(): String = radarService.getString(R.string.empatica_e4_explanation)
-    override fun hasDetailView() = true
-    override fun getDisplayName(): String = radarService.getString(R.string.empaticaE4DisplayName)
-    override fun isFilterable() = true
-
-    override fun getDeviceProducer() = "Empatica"
-    override fun getDeviceModel() = "E4"
-    override fun getVersion() = BuildConfig.VERSION_NAME
-
-    companion object {
-        const val EMPATICA_API_KEY = "empatica_api_key"
-    }
+    override val sourceProducer = "Empatica"
+    override val sourceModel = "E4"
+    override val version = BuildConfig.VERSION_NAME
 }

@@ -16,78 +16,25 @@
 
 package org.radarcns.empatica
 
-import android.os.Parcel
-import android.os.Parcelable
 import com.empatica.empalink.config.EmpaSensorType
-import org.radarcns.android.device.BaseDeviceState
-import org.radarcns.android.device.DeviceStateCreator
+import org.radarbase.android.device.BaseDeviceState
 import java.util.*
 
 /**
  * The status on a single point in time of an Empatica E4 device.
  */
-class E4DeviceStatus() : BaseDeviceState() {
-    private val acceleration = floatArrayOf(java.lang.Float.NaN, java.lang.Float.NaN, java.lang.Float.NaN)
-    private var batteryLevel = java.lang.Float.NaN
+class E4DeviceStatus : BaseDeviceState() {
     @set:Synchronized
-    var bloodVolumePulse = java.lang.Float.NaN
+    var bloodVolumePulse = Float.NaN
+
     @set:Synchronized
-    var electroDermalActivity = java.lang.Float.NaN
+    var electroDermalActivity = Float.NaN
+
     @set:Synchronized
-    var interBeatInterval = java.lang.Float.NaN
-    private var temperature = java.lang.Float.NaN
-    private val sensorStatus = EnumMap<EmpaSensorType, String>(EmpaSensorType::class.java)
+    var interBeatInterval = Float.NaN
 
-    constructor(parcel: Parcel) : this() {
-        batteryLevel = parcel.readFloat()
-        bloodVolumePulse = parcel.readFloat()
-        electroDermalActivity = parcel.readFloat()
-        interBeatInterval = parcel.readFloat()
-        temperature = parcel.readFloat()
-    }
-
-    @Synchronized
-    override fun writeToParcel(dest: Parcel, flags: Int) {
-        super.writeToParcel(dest, flags)
-        dest.writeFloat(this.acceleration[0])
-        dest.writeFloat(this.acceleration[1])
-        dest.writeFloat(this.acceleration[2])
-        dest.writeFloat(this.batteryLevel)
-        dest.writeFloat(this.bloodVolumePulse)
-        dest.writeFloat(this.electroDermalActivity)
-        dest.writeFloat(this.interBeatInterval)
-        dest.writeFloat(this.temperature)
-        dest.writeInt(sensorStatus.size)
-        for ((key, value) in sensorStatus) {
-            dest.writeInt(key.ordinal)
-            dest.writeString(value)
-        }
-    }
-
-    override fun updateFromParcel(`in`: Parcel) {
-        super.updateFromParcel(`in`)
-        acceleration[0] = `in`.readFloat()
-        acceleration[1] = `in`.readFloat()
-        acceleration[2] = `in`.readFloat()
-        batteryLevel = `in`.readFloat()
-        bloodVolumePulse = `in`.readFloat()
-        electroDermalActivity = `in`.readFloat()
-        interBeatInterval = `in`.readFloat()
-        temperature = `in`.readFloat()
-        val numSensors = `in`.readInt()
-        for (i in 0 until numSensors) {
-            sensorStatus[EmpaSensorType.values()[`in`.readInt()]] = `in`.readString()!!
-        }
-    }
-
-    override fun hasAcceleration(): Boolean {
-        return true
-    }
-
-    override fun getAcceleration(): FloatArray {
-        return acceleration
-    }
-
+    override val hasAcceleration: Boolean = true
+    override var acceleration = floatArrayOf(Float.NaN, Float.NaN, Float.NaN)
     @Synchronized
     fun setAcceleration(x: Float, y: Float, z: Float) {
         this.acceleration[0] = x
@@ -95,47 +42,20 @@ class E4DeviceStatus() : BaseDeviceState() {
         this.acceleration[2] = z
     }
 
-    override fun getBatteryLevel(): Float {
-        return batteryLevel
-    }
+    @set:Synchronized
+    override var batteryLevel: Float = Float.NaN
 
-    @Synchronized
-    fun setBatteryLevel(batteryLevel: Float) {
-        this.batteryLevel = batteryLevel
-    }
+    override val hasHeartRate: Boolean = true
+    override val heartRate: Float
+        get() = 60 / interBeatInterval
 
-    override fun hasHeartRate(): Boolean {
-        return true
-    }
+    override val hasTemperature: Boolean = true
+    @set:Synchronized
+    override var temperature = Float.NaN
 
-    override fun getHeartRate(): Float {
-        return 60 / interBeatInterval
-    }
-
-    override fun hasTemperature(): Boolean {
-        return true
-    }
-
-    override fun getTemperature(): Float {
-        return temperature
-    }
-
-    @Synchronized
-    fun setTemperature(temperature: Float) {
-        this.temperature = temperature
-    }
-
-    fun getSensorStatus(): Map<EmpaSensorType, String> {
-        return sensorStatus
-    }
-
+    private val sensorStatus: MutableMap<EmpaSensorType, String> = EnumMap<EmpaSensorType, String>(EmpaSensorType::class.java)
     @Synchronized
     fun setSensorStatus(type: EmpaSensorType, status: String) {
         sensorStatus[type] = status
-    }
-
-    companion object {
-        @JvmField
-        val CREATOR: Parcelable.Creator<E4DeviceStatus> = DeviceStateCreator(E4DeviceStatus::class.java)
     }
 }

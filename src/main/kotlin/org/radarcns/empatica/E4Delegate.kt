@@ -10,7 +10,7 @@ import com.empatica.empalink.delegate.EmpaStatusDelegate
 
 class E4Delegate(private val e4Service: E4Service) : EmpaDataDelegate, EmpaStatusDelegate, EmpaSessionManagerDelegate {
     private val deviceManager: E4DeviceManager?
-            get() = e4Service.deviceManager
+        get() = e4Service.deviceManager as E4DeviceManager?
 
     override fun didReceiveGSR(gsr: Float, timestamp: Double): Unit = deviceManager?.didReceiveGSR(gsr, timestamp) ?: Unit
     override fun didReceiveBVP(bvp: Float, timestamp: Double) = deviceManager?.didReceiveBVP(bvp, timestamp) ?: Unit
