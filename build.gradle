@@ -109,7 +109,7 @@ repositories {
 dependencies {
     api 'org.radarbase:radar-commons-android:0.10.0-SNAPSHOT'
     implementation 'org.radarcns:radar-schemas-commons:0.4.3'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
 
     implementation 'com.empatica:empalink:2.2@aar'
     runtimeOnly 'com.squareup.okhttp:okhttp:2.5.0'
