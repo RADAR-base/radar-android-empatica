@@ -49,7 +49,6 @@ class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDevic
     private val isScanning = AtomicBoolean(false)
     private var hasBeenConnecting = false
     lateinit var apiKey: String
-    override var attributes: Map<String, String> = emptyMap()
 
     override fun start(acceptableIds: Set<String>) {
         logger.info("Starting scanning")
@@ -190,7 +189,7 @@ class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDevic
     }
 
     override fun didUpdateOnWristStatus(status: Int) {
-        val now = System.currentTimeMillis() / 1000.0
+        val now = currentTime
         send(sensorStatusTopic, EmpaticaE4SensorStatus(
                 now, now, "e4", STATUS_NAMES.get(status, "UNKNOWN")))
     }
@@ -199,20 +198,20 @@ class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDevic
         state.setAcceleration(x / 64f, y / 64f, z / 64f)
         val latestAcceleration = state.acceleration
         send(accelerationTopic, EmpaticaE4Acceleration(
-                timestamp, System.currentTimeMillis() / 1000.0,
+                timestamp, currentTime,
                 latestAcceleration[0], latestAcceleration[1], latestAcceleration[2]))
     }
 
     override fun didReceiveBVP(bvp: Float, timestamp: Double) {
         state.bloodVolumePulse = bvp
         send(bloodVolumePulseTopic, EmpaticaE4BloodVolumePulse(
-                timestamp, System.currentTimeMillis() / 1000.0, bvp))
+                timestamp, currentTime, bvp))
     }
 
     override fun didReceiveBatteryLevel(battery: Float, timestamp: Double) {
         state.batteryLevel = battery
         send(batteryLevelTopic, EmpaticaE4BatteryLevel(
-                timestamp, System.currentTimeMillis() / 1000.0, battery))
+                timestamp, currentTime, battery))
     }
 
     override fun didReceiveTag(timestamp: Double) {
@@ -221,26 +220,26 @@ class E4DeviceManager(e4Service: E4Service, private val deviceManager: EmpaDevic
 
     override fun didReceiveGSR(gsr: Float, timestamp: Double) {
         state.electroDermalActivity = gsr
-        val value = EmpaticaE4ElectroDermalActivity(timestamp, System.currentTimeMillis() / 1000.0, gsr)
+        val value = EmpaticaE4ElectroDermalActivity(timestamp, currentTime, gsr)
         send(edaTopic, value)
     }
 
     override fun didReceiveIBI(ibi: Float, timestamp: Double) {
         state.interBeatInterval = ibi
-        val value = EmpaticaE4InterBeatInterval(timestamp, System.currentTimeMillis() / 1000.0, ibi)
+        val value = EmpaticaE4InterBeatInterval(timestamp, currentTime, ibi)
         send(interBeatIntervalTopic, value)
     }
 
     override fun didReceiveTemperature(temperature: Float, timestamp: Double) {
         state.temperature = temperature
-        val value = EmpaticaE4Temperature(timestamp, System.currentTimeMillis() / 1000.0, temperature)
+        val value = EmpaticaE4Temperature(timestamp, currentTime, temperature)
         send(temperatureTopic, value)
     }
 
     override fun didUpdateSensorStatus(status: Int, type: EmpaSensorType) {
         val statusString = STATUS_NAMES.get(status, "UNKNOWN")
         state.setSensorStatus(type, statusString)
-        val now = System.currentTimeMillis() / 1000.0
+        val now = currentTime
         val value = EmpaticaE4SensorStatus(now, now, type.name, statusString)
         send(sensorStatusTopic, value)
     }
