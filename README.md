@@ -1,3 +1,7 @@
+# DEPRECATION NOTICE
+
+All plugin development has moved to https://github.com/RADAR-base/radar-commons-android in the plugins directory. Please view that directory for examples of a plugin.
+
 # Empatica plugin for RADAR-pRMT
 
 Application to be run on an Android 5.0 (or later) device with Bluetooth Low Energy (Bluetooth 4.0 or later), to interact with the Empatica.
